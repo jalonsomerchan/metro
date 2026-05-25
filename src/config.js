@@ -1,12 +1,12 @@
 export const STATION_TYPES = ['circle', 'triangle', 'square', 'diamond'];
 
-export const LINE_COLORS = ['#ef4444', '#2563eb', '#f59e0b', '#16a34a', '#9333ea'];
+export const LINE_COLORS = ['#ef2b24', '#21479b', '#ffd200', '#26a65b', '#8e44ad'];
 
 export const GAME_CONFIG = {
-  stationRadius: 11,
-  stationHitboxRadius: 38,
-  lineHitboxRadius: 24,
-  controlPointHitboxRadius: 30,
+  stationRadius: 12,
+  stationHitboxRadius: 56,
+  lineHitboxRadius: 30,
+  controlPointHitboxRadius: 36,
   trainRadius: 8,
   trainSpeed: 0.0022,
   trainCapacity: 6,
