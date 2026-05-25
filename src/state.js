@@ -156,6 +156,44 @@ export function isTransferStation(state, stationId) {
   return stationLineIds(state, stationId).length > 1;
 }
 
+export function getLineLimit(state) {
+  return GAME_CONFIG.initialLineLimit + Math.floor(state.stations.length / GAME_CONFIG.lineBonusEveryStations);
+}
+
+export function getTrackLimit(state) {
+  return GAME_CONFIG.initialTrackLimit
+    + Math.floor(state.stations.length / GAME_CONFIG.stationsPerResourceBonus) * 2;
+}
+
+export function getTrackUsed(state) {
+  return state.lines.reduce((total, line) => total + Math.max(line.stationIds.length - 1, 0), 0);
+}
+
+export function getResourceStatus(state) {
+  const lineLimit = getLineLimit(state);
+  const trackLimit = getTrackLimit(state);
+  const lineUsed = state.lines.length;
+  const trackUsed = getTrackUsed(state);
+
+  return {
+    lineUsed,
+    lineLimit,
+    lineRemaining: Math.max(lineLimit - lineUsed, 0),
+    trackUsed,
+    trackLimit,
+    trackRemaining: Math.max(trackLimit - trackUsed, 0),
+  };
+}
+
+export function canCreateLine(state) {
+  const resources = getResourceStatus(state);
+  return resources.lineRemaining > 0 && resources.trackRemaining > 0;
+}
+
+export function canAddTrack(state, amount = 1) {
+  return getResourceStatus(state).trackRemaining >= amount;
+}
+
 export function setTool(state, tool) {
   state.tool = tool;
   state.paused = tool === 'pause' ? !state.paused : state.paused;
