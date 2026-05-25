@@ -20,21 +20,24 @@ export function resizeCanvas(canvas, state) {
 export function render(canvas, state) {
   const context = canvas.getContext('2d');
   context.clearRect(0, 0, state.viewport.width, state.viewport.height);
-  drawGrid(context, state);
+  drawPaper(context, state);
   drawLines(context, state);
   drawStations(context, state);
   drawTrains(context, state);
   drawDragPreview(context, state);
 }
 
-function drawGrid(context, state) {
+function drawPaper(context, state) {
   context.save();
-  context.strokeStyle = getCssColor('--grid-color');
-  context.lineWidth = 1;
+  context.fillStyle = getCssColor('--paper-color');
+  context.fillRect(0, 0, state.viewport.width, state.viewport.height);
 
-  const size = 56;
-  const offsetX = positiveModulo(-state.camera.x + state.viewport.width / 2, size);
-  const offsetY = positiveModulo(-state.camera.y + state.viewport.height / 2, size);
+  context.globalAlpha = 0.18;
+  context.strokeStyle = '#d8d1c4';
+  context.lineWidth = 1;
+  const size = 96;
+  const offsetX = positiveModulo(-state.camera.x * 0.18, size);
+  const offsetY = positiveModulo(-state.camera.y * 0.18, size);
 
   for (let x = offsetX; x < state.viewport.width; x += size) {
     context.beginPath();
@@ -60,10 +63,10 @@ function drawLines(context, state) {
 
     context.save();
     context.strokeStyle = line.color;
-    context.lineWidth = state.selectedLineId === line.id ? 13 : 9;
+    context.lineWidth = state.selectedLineId === line.id ? 18 : 14;
     context.lineCap = 'round';
     context.lineJoin = 'round';
-    context.globalAlpha = state.selectedLineId && state.selectedLineId !== line.id ? 0.45 : 1;
+    context.globalAlpha = state.selectedLineId && state.selectedLineId !== line.id ? 0.48 : 1;
     context.beginPath();
 
     stations.forEach((station, index) => {
@@ -84,10 +87,10 @@ function drawStations(context, state) {
 
     const transfer = isTransferStation(state, station.id);
     context.save();
-    context.fillStyle = getCssColor('--surface-color');
-    context.strokeStyle = transfer ? '#22c55e' : getCssColor('--ink-color');
-    context.lineWidth = transfer ? 4 : 3;
-    drawShape(context, station.type, point.x, point.y, GAME_CONFIG.stationRadius + (transfer ? 2 : 0));
+    context.fillStyle = getCssColor('--station-fill-color');
+    context.strokeStyle = getCssColor('--station-stroke-color');
+    context.lineWidth = transfer ? 6 : 5;
+    drawShape(context, station.type, point.x, point.y, GAME_CONFIG.stationRadius + (transfer ? 4 : 0));
     context.fill();
     context.stroke();
 
@@ -98,10 +101,10 @@ function drawStations(context, state) {
 
 function drawQueue(context, station, point) {
   station.queue.slice(0, 8).forEach((passenger, index) => {
-    const x = point.x - 22 + (index % 4) * 14;
-    const y = point.y + 23 + Math.floor(index / 4) * 13;
-    context.fillStyle = '#111827';
-    drawShape(context, passenger.destinationType, x, y, 4);
+    const x = point.x + 20 + (index % 4) * 13;
+    const y = point.y + 4 + Math.floor(index / 4) * 13;
+    context.fillStyle = getCssColor('--station-stroke-color');
+    drawShape(context, passenger.destinationType, x, y, 4.5);
     context.fill();
   });
 }
@@ -122,19 +125,14 @@ function drawTrains(context, state) {
     const y = start.y + (end.y - start.y) * train.progress;
 
     context.save();
-    context.fillStyle = '#ffffff';
+    context.translate(x, y);
+    context.rotate(Math.atan2(end.y - start.y, end.x - start.x));
+    context.fillStyle = '#f5f0e6';
     context.strokeStyle = line.color;
     context.lineWidth = 4;
-    roundedRect(context, x - 13, y - 9, 26, 18, 8);
+    roundedRect(context, -16, -9, 32, 18, 2);
     context.fill();
     context.stroke();
-
-    train.passengers.slice(0, 4).forEach((passenger, index) => {
-      context.fillStyle = '#111827';
-      drawShape(context, passenger.destinationType, x - 8 + index * 5, y, 2.5);
-      context.fill();
-    });
-
     context.restore();
   }
 }
@@ -143,10 +141,10 @@ function drawDragPreview(context, state) {
   if (!state.drag?.startPoint || !state.drag.currentPoint || state.drag.mode === 'pan-map') return;
 
   context.save();
-  context.strokeStyle = state.drag.line?.color || '#38bdf8';
-  context.lineWidth = 7;
+  context.strokeStyle = state.drag.line?.color || '#ef2b24';
+  context.lineWidth = 10;
   context.lineCap = 'round';
-  context.setLineDash([10, 12]);
+  context.setLineDash([14, 10]);
   context.beginPath();
   context.moveTo(state.drag.startPoint.x, state.drag.startPoint.y);
   context.lineTo(state.drag.currentPoint.x, state.drag.currentPoint.y);
@@ -157,9 +155,9 @@ function drawDragPreview(context, state) {
 function drawShape(context, type, x, y, radius) {
   context.beginPath();
   if (type === 'triangle') {
-    context.moveTo(x, y - radius);
-    context.lineTo(x + radius, y + radius);
-    context.lineTo(x - radius, y + radius);
+    context.moveTo(x, y - radius * 1.1);
+    context.lineTo(x + radius * 1.08, y + radius * 0.95);
+    context.lineTo(x - radius * 1.08, y + radius * 0.95);
     context.closePath();
     return;
   }
@@ -168,10 +166,10 @@ function drawShape(context, type, x, y, radius) {
     return;
   }
   if (type === 'diamond') {
-    context.moveTo(x, y - radius);
-    context.lineTo(x + radius, y);
-    context.lineTo(x, y + radius);
-    context.lineTo(x - radius, y);
+    context.moveTo(x, y - radius * 1.15);
+    context.lineTo(x + radius * 1.15, y);
+    context.lineTo(x, y + radius * 1.15);
+    context.lineTo(x - radius * 1.15, y);
     context.closePath();
     return;
   }
