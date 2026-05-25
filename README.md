@@ -8,6 +8,7 @@ Prototipo mobile-first de un juego de gestión de metro inspirado en dinámicas 
 - Las estaciones aparecen poco a poco alrededor de la zona visible.
 - Abre el menú de hamburguesa para cambiar entre **Línea nueva**, **Borrador** y **Pausa**.
 - En **Línea nueva**, arrastra desde una estación hasta otra estación existente para crear una línea.
+- Si una estación ya pertenece a otra línea, también puede usarse para empezar una nueva línea o crear transbordos.
 - Toca una línea para seleccionarla.
 - Arrastra un extremo de una línea seleccionada hasta otra estación para ampliarla.
 - Arrastra un nodo intermedio para modificar el trazado.
@@ -17,10 +18,12 @@ Prototipo mobile-first de un juego de gestión de metro inspirado en dinámicas 
 ## Detalles técnicos
 
 - HTML5 Canvas a pantalla completa, CSS y JavaScript puro, sin dependencias de runtime.
+- Estética inspirada en Mini Metro: fondo claro tipo papel, líneas gruesas de colores sólidos, estaciones con relleno claro y contorno oscuro.
 - Controles táctiles con `touchstart`, `touchmove` y `touchend`.
 - `preventDefault()` y `touch-action: none` evitan scroll, zoom y gestos del navegador durante la interacción.
 - Cámara con coordenadas de mundo para permitir movimiento por un mapa virtual sin límites fijos.
 - Hitboxes táctiles más grandes que el dibujo visual de estaciones y puntos de control.
+- En modo **Línea nueva**, la detección prioriza estaciones sobre controles de líneas para que sea fácil crear conexiones.
 - Punto de fuga para edición: extremos amplían líneas; nodos intermedios mueven estaciones y alteran el trazado.
 - Las estaciones nuevas se generan de forma progresiva durante la simulación.
 - Cada estación mantiene una `queue` de pasajeros.

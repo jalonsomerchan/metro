@@ -6,13 +6,23 @@ export function distance(a, b) {
 }
 
 export function findStationAt(state, point) {
-  return state.stations.find((station) => (
-    distance(getStationPoint(state, station), point) <= GAME_CONFIG.stationHitboxRadius
-  ));
+  let closest = null;
+
+  for (const station of state.stations) {
+    const stationPoint = getStationPoint(state, station);
+    const stationDistance = distance(stationPoint, point);
+    if (stationDistance <= GAME_CONFIG.stationHitboxRadius && (!closest || stationDistance < closest.distance)) {
+      closest = { station, distance: stationDistance };
+    }
+  }
+
+  return closest?.station || null;
 }
 
-export function findLineControlAt(state, point) {
+export function findLineControlAt(state, point, selectedLineId = null) {
   for (const line of state.lines) {
+    if (selectedLineId && line.id !== selectedLineId) continue;
+
     const stations = getLineStations(state, line);
     for (let index = 0; index < stations.length; index += 1) {
       const stationPoint = getStationPoint(state, stations[index]);

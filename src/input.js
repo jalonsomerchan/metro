@@ -22,7 +22,21 @@ function handleTouchStart(event, canvas, state, onChange) {
 
   if (state.tool === 'pause') return;
 
-  const control = findLineControlAt(state, point);
+  const station = findStationAt(state, point);
+  if (state.tool === 'line' && station) {
+    state.drag = {
+      mode: 'new-line',
+      startStation: station,
+      startPoint: getStationPoint(state, station),
+      currentPoint: point,
+      lastPoint: point,
+      moved: false,
+    };
+    onChange('Arrastra a otra estación');
+    return;
+  }
+
+  const control = findLineControlAt(state, point, state.selectedLineId);
   if (control) {
     state.selectedLineId = control.line.id;
     state.selectedControl = control;
@@ -36,20 +50,6 @@ function handleTouchStart(event, canvas, state, onChange) {
       moved: false,
     };
     onChange('Editando trazado');
-    return;
-  }
-
-  const station = findStationAt(state, point);
-  if (station) {
-    state.drag = {
-      mode: 'new-line',
-      startStation: station,
-      startPoint: getStationPoint(state, station),
-      currentPoint: point,
-      lastPoint: point,
-      moved: false,
-    };
-    onChange('Arrastra a otra estación');
     return;
   }
 
@@ -103,11 +103,11 @@ function handleTouchEnd(event, canvas, state, onChange) {
   const targetStation = findStationAt(state, point);
 
   if (state.drag.mode === 'new-line') {
-    finishNewLine(state, state.drag.startStation, targetStation);
+    finishNewLine(state, state.drag.startStation, targetStation, onChange);
   }
 
   if (state.drag.mode === 'extend-line') {
-    finishLineExtension(state, state.drag.control, targetStation);
+    finishLineExtension(state, state.drag.control, targetStation, onChange);
   }
 
   state.drag = null;
@@ -122,14 +122,22 @@ function handleTouchCancel(event, state, onChange) {
   onChange();
 }
 
-function finishNewLine(state, startStation, targetStation) {
-  if (!targetStation || startStation.id === targetStation.id) return;
+function finishNewLine(state, startStation, targetStation, onChange) {
+  if (!targetStation) {
+    onChange('Suelta sobre otra estación');
+    return;
+  }
+  if (startStation.id === targetStation.id) {
+    onChange('Elige otra estación');
+    return;
+  }
 
   const existingLine = state.lines.find((line) => (
     line.stationIds.includes(startStation.id) && line.stationIds.includes(targetStation.id)
   ));
   if (existingLine) {
     state.selectedLineId = existingLine.id;
+    onChange('Línea seleccionada');
     return;
   }
 
@@ -137,10 +145,14 @@ function finishNewLine(state, startStation, targetStation) {
   state.lines.push(line);
   state.selectedLineId = line.id;
   ensureLineTrain(state, line);
+  onChange('Línea creada');
 }
 
-function finishLineExtension(state, control, targetStation) {
-  if (!targetStation) return;
+function finishLineExtension(state, control, targetStation, onChange) {
+  if (!targetStation) {
+    onChange('Suelta sobre una estación');
+    return;
+  }
   const line = control.line;
 
   if (line.stationIds.includes(targetStation.id)) return;
@@ -152,6 +164,7 @@ function finishLineExtension(state, control, targetStation) {
   }
 
   ensureLineTrain(state, line);
+  onChange('Línea ampliada');
 }
 
 function eraseAtPoint(state, point) {
