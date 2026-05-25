@@ -1,18 +1,13 @@
+import { GAME_CONFIG } from './config.js';
 import { findLineAt, findLineControlAt, findStationAt, getTouchPoint } from './geometry.js';
 import { ensureLineTrain } from './simulation.js';
-import { addStation, createLine, getStationPoint, randomStationType } from './state.js';
+import { createLine, getStationPoint, panCamera, screenToWorld } from './state.js';
 
 export function bindTouchControls(canvas, state, onChange) {
   canvas.addEventListener('touchstart', (event) => handleTouchStart(event, canvas, state, onChange), { passive: false });
   canvas.addEventListener('touchmove', (event) => handleTouchMove(event, canvas, state, onChange), { passive: false });
   canvas.addEventListener('touchend', (event) => handleTouchEnd(event, canvas, state, onChange), { passive: false });
   canvas.addEventListener('touchcancel', (event) => handleTouchCancel(event, state, onChange), { passive: false });
-
-  canvas.addEventListener('pointerdown', (event) => {
-    if (event.pointerType === 'mouse') {
-      handlePointerFallback(event, state, onChange);
-    }
-  });
 }
 
 function handleTouchStart(event, canvas, state, onChange) {
@@ -37,6 +32,8 @@ function handleTouchStart(event, canvas, state, onChange) {
       control,
       startPoint: getStationPoint(state, control.station),
       currentPoint: point,
+      lastPoint: point,
+      moved: false,
     };
     onChange('Editando trazado');
     return;
@@ -49,6 +46,8 @@ function handleTouchStart(event, canvas, state, onChange) {
       startStation: station,
       startPoint: getStationPoint(state, station),
       currentPoint: point,
+      lastPoint: point,
+      moved: false,
     };
     onChange('Arrastra a otra estación');
     return;
@@ -58,7 +57,17 @@ function handleTouchStart(event, canvas, state, onChange) {
   if (touchedLine) {
     state.selectedLineId = touchedLine.line.id;
     onChange('Línea seleccionada');
+    return;
   }
+
+  state.drag = {
+    mode: 'pan-map',
+    startPoint: point,
+    currentPoint: point,
+    lastPoint: point,
+    moved: false,
+  };
+  onChange('Moviendo mapa');
 }
 
 function handleTouchMove(event, canvas, state, onChange) {
@@ -66,14 +75,23 @@ function handleTouchMove(event, canvas, state, onChange) {
   if (!state.drag) return;
 
   const point = getTouchPoint(canvas, event);
+  const dx = point.x - state.drag.lastPoint.x;
+  const dy = point.y - state.drag.lastPoint.y;
   state.drag.currentPoint = point;
+  state.drag.moved = state.drag.moved || Math.hypot(point.x - state.drag.startPoint.x, point.y - state.drag.startPoint.y) > GAME_CONFIG.panDeadZone;
+
+  if (state.drag.mode === 'pan-map') {
+    panCamera(state, dx, dy);
+  }
 
   if (state.drag.mode === 'edit-control') {
     const station = state.drag.control.station;
-    station.xRatio = point.x / Math.max(state.viewport.width, 1);
-    station.yRatio = point.y / Math.max(state.viewport.height, 1);
+    const worldPoint = screenToWorld(state, point);
+    station.x = worldPoint.x;
+    station.y = worldPoint.y;
   }
 
+  state.drag.lastPoint = point;
   onChange();
 }
 
@@ -85,11 +103,11 @@ function handleTouchEnd(event, canvas, state, onChange) {
   const targetStation = findStationAt(state, point);
 
   if (state.drag.mode === 'new-line') {
-    finishNewLine(state, state.drag.startStation, targetStation, point);
+    finishNewLine(state, state.drag.startStation, targetStation);
   }
 
   if (state.drag.mode === 'extend-line') {
-    finishLineExtension(state, state.drag.control, targetStation, point);
+    finishLineExtension(state, state.drag.control, targetStation);
   }
 
   state.drag = null;
@@ -104,26 +122,33 @@ function handleTouchCancel(event, state, onChange) {
   onChange();
 }
 
-function finishNewLine(state, startStation, targetStation, point) {
-  const endStation = targetStation || addStation(state, point.x, point.y, randomStationType());
-  if (startStation.id === endStation.id) return;
+function finishNewLine(state, startStation, targetStation) {
+  if (!targetStation || startStation.id === targetStation.id) return;
 
-  const line = createLine([startStation.id, endStation.id]);
+  const existingLine = state.lines.find((line) => (
+    line.stationIds.includes(startStation.id) && line.stationIds.includes(targetStation.id)
+  ));
+  if (existingLine) {
+    state.selectedLineId = existingLine.id;
+    return;
+  }
+
+  const line = createLine([startStation.id, targetStation.id]);
   state.lines.push(line);
   state.selectedLineId = line.id;
   ensureLineTrain(state, line);
 }
 
-function finishLineExtension(state, control, targetStation, point) {
+function finishLineExtension(state, control, targetStation) {
+  if (!targetStation) return;
   const line = control.line;
-  const newStation = targetStation || addStation(state, point.x, point.y, randomStationType());
 
-  if (line.stationIds.includes(newStation.id)) return;
+  if (line.stationIds.includes(targetStation.id)) return;
 
   if (control.index === 0) {
-    line.stationIds.unshift(newStation.id);
+    line.stationIds.unshift(targetStation.id);
   } else {
-    line.stationIds.push(newStation.id);
+    line.stationIds.push(targetStation.id);
   }
 
   ensureLineTrain(state, line);
@@ -146,19 +171,4 @@ function eraseAtPoint(state, point) {
     state.lines = state.lines.filter((line) => line.id !== lineHit.line.id);
     state.trains = state.trains.filter((train) => train.lineId !== lineHit.line.id);
   }
-}
-
-function handlePointerFallback(event, state, onChange) {
-  const rect = event.currentTarget.getBoundingClientRect();
-  const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-  const station = findStationAt(state, point);
-  if (!station) return;
-
-  state.drag = {
-    mode: 'new-line',
-    startStation: station,
-    startPoint: getStationPoint(state, station),
-    currentPoint: point,
-  };
-  onChange('Usa táctil para el flujo completo');
 }

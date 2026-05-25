@@ -6,6 +6,8 @@ import { createInitialState, setTool } from './state.js';
 const canvas = document.querySelector('#gameCanvas');
 const statusPill = document.querySelector('#statusPill');
 const hintCard = document.querySelector('#hintCard');
+const menuToggle = document.querySelector('#menuToggle');
+const toolsMenu = document.querySelector('#toolsMenu');
 const toolButtons = [...document.querySelectorAll('.tool-button')];
 const state = createInitialState();
 let lastFrameAt = performance.now();
@@ -14,9 +16,11 @@ let hintTimeout = 0;
 function boot() {
   resizeCanvas(canvas, state);
   bindToolbar();
+  bindMenu();
   bindTouchControls(canvas, state, setStatus);
   window.addEventListener('resize', () => resizeCanvas(canvas, state));
   window.addEventListener('orientationchange', () => setTimeout(() => resizeCanvas(canvas, state), 250));
+  setStatus('Mapa infinito');
   requestAnimationFrame(loop);
 }
 
@@ -34,9 +38,29 @@ function bindToolbar() {
       const tool = button.dataset.tool;
       setTool(state, tool);
       updateToolbar(tool);
+      closeMenu();
       setStatus(tool === 'pause' && state.paused ? 'Pausado' : labelForTool(tool));
     });
   });
+}
+
+function bindMenu() {
+  menuToggle.addEventListener('click', () => {
+    state.menuOpen = !state.menuOpen;
+    syncMenu();
+  });
+}
+
+function syncMenu() {
+  menuToggle.setAttribute('aria-expanded', String(state.menuOpen));
+  menuToggle.classList.toggle('is-open', state.menuOpen);
+  toolsMenu.hidden = !state.menuOpen;
+  toolsMenu.classList.toggle('is-open', state.menuOpen);
+}
+
+function closeMenu() {
+  state.menuOpen = false;
+  syncMenu();
 }
 
 function updateToolbar(tool) {
@@ -66,7 +90,9 @@ function helperForState(status) {
   if (status === 'Pausado') return 'La simulación está detenida. Toca otra herramienta para continuar.';
   if (status === 'Línea seleccionada') return 'Toca un extremo para ampliarla o un nodo intermedio para moverlo.';
   if (status === 'Editando trazado') return 'Arrastra el punto de control. Los extremos amplían la línea.';
-  return 'Arrastra entre estaciones para crear líneas y deja que los pasajeros hagan transbordo.';
+  if (status === 'Moviendo mapa') return 'Arrastra sobre el fondo para recorrer el mapa infinito.';
+  if (status === 'Mapa infinito') return 'Las estaciones aparecerán poco a poco. Conecta dos estaciones arrastrando de una a otra.';
+  return 'Arrastra entre estaciones para crear líneas. Arrastra el fondo para moverte por el mapa.';
 }
 
 boot();

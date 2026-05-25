@@ -4,13 +4,14 @@ export const LINE_COLORS = ['#ef4444', '#2563eb', '#f59e0b', '#16a34a', '#9333ea
 
 export const GAME_CONFIG = {
   stationRadius: 11,
-  stationHitboxRadius: 34,
-  lineHitboxRadius: 22,
-  controlPointHitboxRadius: 28,
+  stationHitboxRadius: 38,
+  lineHitboxRadius: 24,
+  controlPointHitboxRadius: 30,
   trainRadius: 8,
   trainSpeed: 0.0022,
   trainCapacity: 6,
   passengerSpawnMs: 2300,
+  stationSpawnMs: 6500,
   maxStationQueue: 16,
-  toolbarSafeArea: 112,
+  panDeadZone: 8,
 };

@@ -1,4 +1,4 @@
-import { LINE_COLORS, STATION_TYPES } from './config.js';
+import { GAME_CONFIG, LINE_COLORS, STATION_TYPES } from './config.js';
 
 let idCounter = 0;
 
@@ -7,29 +7,29 @@ const nextId = (prefix) => `${prefix}-${idCounter += 1}`;
 export const createInitialState = () => ({
   tool: 'line',
   paused: false,
+  menuOpen: false,
   selectedLineId: null,
   selectedControl: null,
   drag: null,
+  camera: { x: 0, y: 0 },
   viewport: { width: 0, height: 0, dpr: 1 },
   stations: [
-    createStation(0.22, 0.24, 'circle'),
-    createStation(0.72, 0.25, 'triangle'),
-    createStation(0.49, 0.42, 'square'),
-    createStation(0.25, 0.65, 'diamond'),
-    createStation(0.77, 0.68, 'circle'),
-    createStation(0.51, 0.78, 'triangle'),
+    createStation(-150, -120, 'circle'),
+    createStation(160, -95, 'triangle'),
+    createStation(15, 90, 'square'),
   ],
   lines: [],
   trains: [],
   passengers: [],
   lastSpawnAt: 0,
+  lastStationSpawnAt: 0,
 });
 
-export function createStation(xRatio, yRatio, type) {
+export function createStation(x, y, type) {
   return {
     id: nextId('station'),
-    xRatio,
-    yRatio,
+    x,
+    y,
     type,
     queue: [],
   };
@@ -65,13 +65,34 @@ export function createTrain(lineId) {
 }
 
 export function addStation(state, x, y, type = randomStationType()) {
-  const station = createStation(
-    clamp(x / Math.max(state.viewport.width, 1), 0.08, 0.92),
-    clamp(y / Math.max(state.viewport.height, 1), 0.12, 0.82),
-    type,
-  );
+  const station = createStation(x, y, type);
   state.stations.push(station);
   return station;
+}
+
+export function spawnStationNearCamera(state) {
+  const center = screenToWorld(state, {
+    x: state.viewport.width / 2,
+    y: state.viewport.height / 2,
+  });
+  const angle = Math.random() * Math.PI * 2;
+  const distance = 190 + Math.random() * 260;
+  const station = addStation(
+    state,
+    center.x + Math.cos(angle) * distance,
+    center.y + Math.sin(angle) * distance,
+    randomStationType(),
+  );
+  return station;
+}
+
+export function maybeSpawnStation(state, now) {
+  if (state.paused || now - state.lastStationSpawnAt < GAME_CONFIG.stationSpawnMs) {
+    return null;
+  }
+
+  state.lastStationSpawnAt = now;
+  return spawnStationNearCamera(state);
 }
 
 export function randomStationType() {
@@ -87,10 +108,26 @@ export function getLineById(state, lineId) {
 }
 
 export function getStationPoint(state, station) {
+  return worldToScreen(state, station);
+}
+
+export function worldToScreen(state, point) {
   return {
-    x: station.xRatio * state.viewport.width,
-    y: station.yRatio * state.viewport.height,
+    x: point.x - state.camera.x + state.viewport.width / 2,
+    y: point.y - state.camera.y + state.viewport.height / 2,
   };
+}
+
+export function screenToWorld(state, point) {
+  return {
+    x: point.x + state.camera.x - state.viewport.width / 2,
+    y: point.y + state.camera.y - state.viewport.height / 2,
+  };
+}
+
+export function panCamera(state, dx, dy) {
+  state.camera.x -= dx;
+  state.camera.y -= dy;
 }
 
 export function getLineStations(state, line) {
