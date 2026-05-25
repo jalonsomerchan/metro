@@ -36,6 +36,7 @@ function bindToolbar() {
   toolButtons.forEach((button) => {
     button.addEventListener('click', () => {
       const tool = button.dataset.tool;
+      state.pendingStationId = null;
       setTool(state, tool);
       updateToolbar(tool);
       closeMenu();
@@ -88,11 +89,15 @@ function labelForTool(tool) {
 function helperForState(status) {
   if (status === 'Borrador') return 'Toca una estación o línea para eliminarla.';
   if (status === 'Pausado') return 'La simulación está detenida. Toca otra herramienta para continuar.';
+  if (status === 'Zoom') return 'Haz pinza con dos dedos o usa la rueda para acercar y alejar.';
+  if (status === 'Toca estación destino') return 'Ahora toca otra estación para crear la línea.';
+  if (status === 'Arrastra o toca destino') return 'Arrastra hasta otra estación o suelta y toca una segunda estación.';
+  if (status === 'Línea creada') return 'Línea creada. Puedes crear otra desde cualquier estación.';
   if (status === 'Línea seleccionada') return 'Toca un extremo para ampliarla o un nodo intermedio para moverlo.';
   if (status === 'Editando trazado') return 'Arrastra el punto de control. Los extremos amplían la línea.';
   if (status === 'Moviendo mapa') return 'Arrastra sobre el fondo para recorrer el mapa infinito.';
-  if (status === 'Mapa infinito') return 'Las estaciones aparecerán poco a poco. Conecta dos estaciones arrastrando de una a otra.';
-  return 'Arrastra entre estaciones para crear líneas. Arrastra el fondo para moverte por el mapa.';
+  if (status === 'Mapa infinito') return 'Toca una estación y luego otra para crear líneas. Arrastra el fondo para moverte.';
+  return 'Toca dos estaciones para crear líneas. Arrastra el fondo para moverte por el mapa.';
 }
 
 boot();
