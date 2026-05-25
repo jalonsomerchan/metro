@@ -6,6 +6,7 @@ import {
   getLineStations,
   getStationById,
   isTransferStation,
+  maybeSpawnStation,
 } from './state.js';
 
 export function ensureLineTrain(state, line) {
@@ -24,6 +25,7 @@ export function tickSimulation(state, now, deltaMs) {
     return;
   }
 
+  maybeSpawnStation(state, now);
   spawnPassengerIfNeeded(state, now);
   for (const train of state.trains) {
     moveTrain(state, train, now, deltaMs);
