@@ -1,30 +1,19 @@
 :root {
-  color-scheme: light dark;
-  --bg-color: #f8fafc;
-  --surface-color: #ffffff;
-  --ink-color: #101828;
-  --muted-color: #667085;
-  --grid-color: rgba(15, 23, 42, 0.06);
-  --panel-color: rgba(255, 255, 255, 0.9);
-  --shadow-soft: 0 18px 48px rgba(15, 23, 42, 0.16);
-  --radius-md: 16px;
+  color-scheme: light;
+  --paper-color: #f3f0e8;
+  --surface-color: #f7f3ea;
+  --station-fill-color: #f7f3ea;
+  --station-stroke-color: #403532;
+  --ink-color: #332f31;
+  --muted-color: #5f5652;
+  --panel-color: rgba(247, 243, 234, 0.86);
+  --shadow-soft: 0 10px 28px rgba(64, 53, 50, 0.13);
+  --radius-md: 12px;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
   --transition-fast: 160ms ease;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-color: #0f172a;
-    --surface-color: #111827;
-    --ink-color: #f8fafc;
-    --muted-color: #cbd5e1;
-    --grid-color: rgba(255, 255, 255, 0.07);
-    --panel-color: rgba(15, 23, 42, 0.9);
-    --shadow-soft: 0 18px 48px rgba(0, 0, 0, 0.35);
-  }
 }
 
 * {
@@ -37,7 +26,7 @@ body {
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background: var(--bg-color);
+  background: var(--paper-color);
   color: var(--ink-color);
   overscroll-behavior: none;
   touch-action: none;
@@ -53,9 +42,7 @@ canvas {
   inset: 0;
   min-height: 100dvh;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.24), transparent 42%),
-    var(--bg-color);
+  background: var(--paper-color);
 }
 
 #gameCanvas {
@@ -72,74 +59,71 @@ canvas {
   position: fixed;
   top: 0;
   left: 0;
-  right: 4.9rem;
+  right: 4.7rem;
   z-index: 2;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: calc(env(safe-area-inset-top) + var(--space-4)) var(--space-4) var(--space-3);
+  padding: calc(env(safe-area-inset-top) + 0.8rem) var(--space-4) var(--space-3);
   pointer-events: none;
 }
 
 .eyebrow {
-  margin: 0 0 0.15rem;
-  color: var(--muted-color);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  display: none;
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(1.45rem, 7vw, 2.35rem);
+  color: var(--ink-color);
+  font-size: clamp(1.25rem, 5.4vw, 1.9rem);
+  font-weight: 900;
   line-height: 1;
   letter-spacing: -0.06em;
 }
 
 .status-pill {
-  min-width: 6rem;
-  border: 1px solid rgba(148, 163, 184, 0.26);
+  min-width: 5.4rem;
+  border: 0;
   border-radius: 999px;
-  padding: 0.72rem 0.9rem;
-  background: var(--panel-color);
-  box-shadow: var(--shadow-soft);
+  padding: 0.58rem 0.82rem;
+  background: transparent;
+  box-shadow: none;
   color: var(--ink-color);
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-align: right;
 }
 
 .menu-toggle {
   position: fixed;
-  top: calc(env(safe-area-inset-top) + var(--space-3));
+  top: calc(env(safe-area-inset-top) + 0.7rem);
   right: var(--space-3);
   z-index: 5;
   display: grid;
   place-items: center;
-  width: 3.45rem;
-  height: 3.45rem;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 18px;
-  background: var(--panel-color);
-  box-shadow: var(--shadow-soft);
+  width: 3.25rem;
+  height: 3.25rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
   color: var(--ink-color);
   touch-action: manipulation;
 }
 
 .menu-toggle span {
   display: block;
-  width: 1.35rem;
-  height: 0.16rem;
-  margin: 0.12rem 0;
+  width: 1.55rem;
+  height: 0.22rem;
+  margin: 0.11rem 0;
   border-radius: 999px;
   background: currentColor;
   transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 
 .menu-toggle.is-open span:nth-child(1) {
-  transform: translateY(0.4rem) rotate(45deg);
+  transform: translateY(0.44rem) rotate(45deg);
 }
 
 .menu-toggle.is-open span:nth-child(2) {
@@ -147,28 +131,29 @@ h1 {
 }
 
 .menu-toggle.is-open span:nth-child(3) {
-  transform: translateY(-0.4rem) rotate(-45deg);
+  transform: translateY(-0.44rem) rotate(-45deg);
 }
 
 .menu-toggle:focus-visible,
 .tool-button:focus-visible {
-  outline: 3px solid #38bdf8;
+  outline: 3px solid #ef2b24;
   outline-offset: 3px;
 }
 
 .tools-menu {
   position: fixed;
-  top: calc(env(safe-area-inset-top) + 4.4rem);
+  top: calc(env(safe-area-inset-top) + 4.2rem);
   right: var(--space-3);
   z-index: 4;
   display: grid;
-  width: min(15rem, calc(100vw - 1.5rem));
+  width: min(14rem, calc(100vw - 1.5rem));
   gap: var(--space-2);
   padding: var(--space-2);
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 22px;
+  border: 2px solid rgba(64, 53, 50, 0.18);
+  border-radius: 16px;
   background: var(--panel-color);
   box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(8px);
 }
 
 .tools-menu[hidden] {
@@ -176,15 +161,15 @@ h1 {
 }
 
 .tool-button {
-  min-height: 3.8rem;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 17px;
-  padding: 0.7rem 0.8rem;
-  background: color-mix(in srgb, var(--surface-color) 88%, transparent);
+  min-height: 3.5rem;
+  border: 2px solid rgba(64, 53, 50, 0.18);
+  border-radius: 11px;
+  padding: 0.65rem 0.78rem;
+  background: rgba(247, 243, 234, 0.92);
   color: var(--ink-color);
   font: inherit;
-  font-size: 0.85rem;
-  font-weight: 850;
+  font-size: 0.84rem;
+  font-weight: 900;
   text-align: left;
   transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
   touch-action: manipulation;
@@ -193,7 +178,7 @@ h1 {
 .tool-button span {
   display: inline-block;
   margin-right: 0.45rem;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
 }
 
 .tool-button:active {
@@ -201,8 +186,8 @@ h1 {
 }
 
 .tool-button.is-active {
-  border-color: rgba(56, 189, 248, 0.72);
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.26), var(--panel-color));
+  border-color: #403532;
+  background: #ffffff;
 }
 
 .hint-card {
@@ -212,13 +197,14 @@ h1 {
   bottom: calc(env(safe-area-inset-bottom) + var(--space-3));
   z-index: 3;
   transform: translateY(140%);
+  border: 2px solid rgba(64, 53, 50, 0.16);
   border-radius: var(--radius-md);
-  padding: 0.85rem 1rem;
+  padding: 0.78rem 0.9rem;
   background: var(--panel-color);
   box-shadow: var(--shadow-soft);
   color: var(--muted-color);
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-size: 0.86rem;
+  font-weight: 800;
   line-height: 1.35;
   transition: transform var(--transition-fast);
   pointer-events: none;
@@ -230,7 +216,7 @@ h1 {
 
 @media (min-width: 700px) {
   .top-panel {
-    right: 5.6rem;
+    right: 5.3rem;
   }
 
   .hint-card {
