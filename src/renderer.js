@@ -35,9 +35,9 @@ function drawPaper(context, state) {
   context.globalAlpha = 0.18;
   context.strokeStyle = '#d8d1c4';
   context.lineWidth = 1;
-  const size = 96;
-  const offsetX = positiveModulo(-state.camera.x * 0.18, size);
-  const offsetY = positiveModulo(-state.camera.y * 0.18, size);
+  const size = 96 * state.camera.zoom;
+  const offsetX = positiveModulo((-state.camera.x * state.camera.zoom) + state.viewport.width / 2, size);
+  const offsetY = positiveModulo((-state.camera.y * state.camera.zoom) + state.viewport.height / 2, size);
 
   for (let x = offsetX; x < state.viewport.width; x += size) {
     context.beginPath();
@@ -86,13 +86,22 @@ function drawStations(context, state) {
     if (!isVisible(point, 90, state)) continue;
 
     const transfer = isTransferStation(state, station.id);
+    const pending = state.pendingStationId === station.id;
     context.save();
     context.fillStyle = getCssColor('--station-fill-color');
     context.strokeStyle = getCssColor('--station-stroke-color');
-    context.lineWidth = transfer ? 6 : 5;
+    context.lineWidth = pending ? 8 : transfer ? 6 : 5;
     drawShape(context, station.type, point.x, point.y, GAME_CONFIG.stationRadius + (transfer ? 4 : 0));
     context.fill();
     context.stroke();
+
+    if (pending) {
+      context.strokeStyle = '#ef2b24';
+      context.lineWidth = 3;
+      context.setLineDash([5, 5]);
+      drawShape(context, station.type, point.x, point.y, GAME_CONFIG.stationRadius + 13);
+      context.stroke();
+    }
 
     if (station.queue.length) drawQueue(context, station, point);
     context.restore();
