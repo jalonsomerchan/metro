@@ -17,7 +17,7 @@ test('HTML includes mobile viewport, fullscreen canvas and hamburger tools menu'
   assert.match(html, /data-tool="pause"/);
 });
 
-test('input supports touch, mouse, pan, pinch zoom, wheel zoom and tap-to-connect', () => {
+test('input supports touch, mouse, pan, zoom, tap-to-connect and mid-line branching', () => {
   const input = read('src/input.js');
   const css = read('src/styles.css');
 
@@ -29,10 +29,11 @@ test('input supports touch, mouse, pan, pinch zoom, wheel zoom and tap-to-connec
   assert.match(input, /preventDefault\(\)/);
   assert.match(input, /passive: false/);
   assert.match(input, /finishStationTap/);
-  assert.match(input, /pendingStationId/);
+  assert.match(input, /branch-line/);
+  assert.match(input, /finishLineBranch/);
+  assert.match(input, /splice\(drag\.segmentIndex \+ 1, 0, targetStation\.id\)/);
   assert.match(input, /createPinchGesture/);
   assert.match(input, /zoomCameraAt/);
-  assert.match(input, /pan-map/);
   assert.match(input, /panCamera/);
   assert.match(css, /touch-action:\s*none/);
 });
@@ -51,25 +52,27 @@ test('simulation keeps station queues, progressive stations and transfer logic',
   assert.match(simulation, /passengerCanUseOtherLine/);
 });
 
-test('geometry exposes larger touch hitboxes and selected line controls', () => {
+test('geometry exposes segment data and selected line controls', () => {
   const config = read('src/config.js');
   const geometry = read('src/geometry.js');
 
   assert.match(config, /stationHitboxRadius:\s*60/);
-  assert.match(config, /minZoom/);
-  assert.match(config, /maxZoom/);
+  assert.match(config, /terminalExtensionLength/);
+  assert.match(config, /lineWidth:\s*10/);
   assert.match(geometry, /findLineControlAt/);
   assert.match(geometry, /selectedLineId/);
+  assert.match(geometry, /point: hit\.point/);
   assert.match(geometry, /isEnd/);
 });
 
-test('renderer and styles use a paper-like Mini Metro inspired look', () => {
+test('renderer draws lines below stations with terminal overhangs', () => {
   const renderer = read('src/renderer.js');
   const css = read('src/styles.css');
 
-  assert.match(renderer, /drawPaper/);
-  assert.match(renderer, /pendingStationId/);
-  assert.match(renderer, /lineWidth = state\.selectedLineId === line\.id \? 18 : 14/);
+  assert.match(renderer, /drawPaper[\s\S]*drawLines[\s\S]*drawStations/);
+  assert.match(renderer, /withTerminalOverhangs/);
+  assert.match(renderer, /terminalExtensionLength/);
+  assert.match(renderer, /GAME_CONFIG\.lineWidth/);
   assert.match(css, /--paper-color/);
   assert.match(css, /--station-stroke-color/);
 });
