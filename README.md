@@ -12,6 +12,7 @@ Prototipo mobile-first de un juego de gestión de metro inspirado en dinámicas 
 - Si una estación ya pertenece a otra línea, también puede usarse para empezar una nueva línea o crear transbordos.
 - Toca una línea para seleccionarla.
 - Arrastra un extremo de una línea seleccionada hasta otra estación para ampliarla.
+- Arrastra desde un tramo intermedio de una línea hasta una estación para insertar esa estación en el trazado.
 - Arrastra un nodo intermedio para modificar el trazado.
 - Usa **Borrador** para tocar una estación o línea y eliminarla.
 - Usa **Pausa** para detener la simulación.
@@ -19,14 +20,16 @@ Prototipo mobile-first de un juego de gestión de metro inspirado en dinámicas 
 ## Detalles técnicos
 
 - HTML5 Canvas a pantalla completa, CSS y JavaScript puro, sin dependencias de runtime.
-- Estética inspirada en Mini Metro: fondo claro tipo papel, líneas gruesas de colores sólidos, estaciones con relleno claro y contorno oscuro.
+- Estética inspirada en Mini Metro: fondo claro tipo papel, líneas finas de colores sólidos, estaciones con relleno claro y contorno oscuro.
+- Las líneas se dibujan por debajo de las estaciones para mantener la jerarquía visual del mapa.
+- Los extremos de cada línea sobresalen ligeramente de la primera y última estación, igual que en mapas de metro minimalistas.
 - Controles táctiles con `touchstart`, `touchmove` y `touchend`, y soporte adicional de ratón/rueda para escritorio.
 - `preventDefault()` y `touch-action: none` evitan scroll, zoom y gestos del navegador durante la interacción.
 - Cámara con coordenadas de mundo, zoom y pan para permitir movimiento por un mapa virtual sin límites fijos.
 - El zoom mantiene el punto bajo los dedos o el cursor estable mientras cambia la escala.
-- Hitboxes táctiles más grandes que el dibujo visual de estaciones y puntos de control.
+- Hitboxes táctiles más grandes que el dibujo visual de estaciones, líneas y puntos de control.
 - En modo **Línea nueva**, la creación permite arrastrar entre estaciones o tocar dos estaciones consecutivas.
-- Punto de fuga para edición: extremos amplían líneas; nodos intermedios mueven estaciones y alteran el trazado.
+- Una línea puede ampliarse desde extremos o ramificarse desde un tramo intermedio soltando sobre una estación.
 - Las estaciones nuevas se generan de forma progresiva durante la simulación.
 - Cada estación mantiene una `queue` de pasajeros.
 - En cada parada, el tren baja pasajeros si su forma coincide con la estación.
@@ -39,9 +42,9 @@ index.html
 src/
   config.js       Constantes visuales y de juego.
   geometry.js     Hitboxes, distancias y selección táctil.
-  input.js        Eventos táctiles, ratón, zoom, creación de líneas y desplazamiento del mapa.
+  input.js        Eventos táctiles, ratón, zoom, creación de líneas, ramales y desplazamiento del mapa.
   main.js         Arranque, bucle de juego y menú de herramientas.
-  renderer.js     Dibujo del mapa, estaciones, pasajeros y trenes.
+  renderer.js     Dibujo del mapa, terminales de línea, estaciones, pasajeros y trenes.
   simulation.js   Movimiento de trenes, colas, estaciones progresivas y transbordos.
   state.js        Estado, cámara, zoom, entidades y helpers de datos.
 scripts/

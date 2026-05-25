@@ -142,7 +142,16 @@ function startSinglePointer(point, state, onChange) {
   if (touchedLine) {
     state.pendingStationId = null;
     state.selectedLineId = touchedLine.line.id;
-    onChange('Línea seleccionada');
+    state.drag = {
+      mode: 'branch-line',
+      line: touchedLine.line,
+      segmentIndex: touchedLine.index,
+      startPoint: touchedLine.point,
+      currentPoint: point,
+      lastPoint: point,
+      moved: false,
+    };
+    onChange('Arrastra a estación');
     return;
   }
 
@@ -191,6 +200,10 @@ function endSinglePointer(point, state, onChange) {
 
   if (state.drag.mode === 'extend-line') {
     finishLineExtension(state, state.drag.control, targetStation, onChange);
+  }
+
+  if (state.drag.mode === 'branch-line') {
+    finishLineBranch(state, state.drag, targetStation, onChange);
   }
 
   state.drag = null;
@@ -268,6 +281,29 @@ function finishLineExtension(state, control, targetStation, onChange) {
 
   ensureLineTrain(state, line);
   onChange('Línea ampliada');
+}
+
+function finishLineBranch(state, drag, targetStation, onChange) {
+  if (!drag.moved) {
+    onChange('Línea seleccionada');
+    return;
+  }
+
+  if (!targetStation) {
+    onChange('Suelta sobre una estación');
+    return;
+  }
+
+  const line = drag.line;
+  if (line.stationIds.includes(targetStation.id)) {
+    onChange('Elige otra estación');
+    return;
+  }
+
+  line.stationIds.splice(drag.segmentIndex + 1, 0, targetStation.id);
+  state.selectedLineId = line.id;
+  ensureLineTrain(state, line);
+  onChange('Ramal añadido');
 }
 
 function eraseAtPoint(state, point) {
