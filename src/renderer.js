@@ -3,10 +3,9 @@ import { getLineById, getLineStations, getStationPoint, isTransferStation } from
 
 export function resizeCanvas(canvas, state) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const rect = canvas.parentElement.getBoundingClientRect();
 
-  state.viewport.width = Math.floor(rect.width);
-  state.viewport.height = Math.floor(rect.height);
+  state.viewport.width = Math.floor(window.innerWidth);
+  state.viewport.height = Math.floor(window.innerHeight);
   state.viewport.dpr = dpr;
 
   canvas.width = Math.floor(state.viewport.width * dpr);
@@ -33,14 +32,18 @@ function drawGrid(context, state) {
   context.strokeStyle = getCssColor('--grid-color');
   context.lineWidth = 1;
 
-  for (let x = 24; x < state.viewport.width; x += 48) {
+  const size = 56;
+  const offsetX = positiveModulo(-state.camera.x + state.viewport.width / 2, size);
+  const offsetY = positiveModulo(-state.camera.y + state.viewport.height / 2, size);
+
+  for (let x = offsetX; x < state.viewport.width; x += size) {
     context.beginPath();
     context.moveTo(x, 0);
     context.lineTo(x, state.viewport.height);
     context.stroke();
   }
 
-  for (let y = 24; y < state.viewport.height; y += 48) {
+  for (let y = offsetY; y < state.viewport.height; y += size) {
     context.beginPath();
     context.moveTo(0, y);
     context.lineTo(state.viewport.width, y);
@@ -77,8 +80,9 @@ function drawLines(context, state) {
 function drawStations(context, state) {
   for (const station of state.stations) {
     const point = getStationPoint(state, station);
-    const transfer = isTransferStation(state, station.id);
+    if (!isVisible(point, 90, state)) continue;
 
+    const transfer = isTransferStation(state, station.id);
     context.save();
     context.fillStyle = getCssColor('--surface-color');
     context.strokeStyle = transfer ? '#22c55e' : getCssColor('--ink-color');
@@ -136,7 +140,7 @@ function drawTrains(context, state) {
 }
 
 function drawDragPreview(context, state) {
-  if (!state.drag?.startPoint || !state.drag.currentPoint) return;
+  if (!state.drag?.startPoint || !state.drag.currentPoint || state.drag.mode === 'pan-map') return;
 
   context.save();
   context.strokeStyle = state.drag.line?.color || '#38bdf8';
@@ -177,6 +181,17 @@ function drawShape(context, type, x, y, radius) {
 function roundedRect(context, x, y, width, height, radius) {
   context.beginPath();
   context.roundRect(x, y, width, height, radius);
+}
+
+function isVisible(point, margin, state) {
+  return point.x > -margin
+    && point.y > -margin
+    && point.x < state.viewport.width + margin
+    && point.y < state.viewport.height + margin;
+}
+
+function positiveModulo(value, divisor) {
+  return ((value % divisor) + divisor) % divisor;
 }
 
 function getCssColor(token) {
