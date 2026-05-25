@@ -10,6 +10,8 @@
   </head>
   <body>
     <main class="game-shell" aria-label="Prototipo de juego de metro táctil">
+      <canvas id="gameCanvas" aria-label="Mapa jugable de metro"></canvas>
+
       <header class="top-panel" aria-live="polite">
         <div>
           <p class="eyebrow">Prototipo HTML5</p>
@@ -18,14 +20,13 @@
         <div class="status-pill" id="statusPill">Línea nueva</div>
       </header>
 
-      <section class="canvas-wrap" aria-label="Mapa jugable">
-        <canvas id="gameCanvas"></canvas>
-        <div class="hint-card" id="hintCard">
-          Arrastra entre estaciones para crear o ampliar líneas. Toca una línea para editarla.
-        </div>
-      </section>
+      <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="toolsMenu" aria-label="Abrir herramientas">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
 
-      <nav class="bottom-toolbar" aria-label="Herramientas del juego">
+      <nav class="tools-menu" id="toolsMenu" aria-label="Herramientas del juego" hidden>
         <button class="tool-button is-active" type="button" data-tool="line" aria-pressed="true">
           <span aria-hidden="true">➕</span>
           Línea nueva
@@ -39,6 +40,10 @@
           Pausa
         </button>
       </nav>
+
+      <div class="hint-card" id="hintCard">
+        Arrastra el mapa para moverte. Arrastra entre estaciones para crear líneas.
+      </div>
     </main>
     <script type="module" src="./src/main.js"></script>
   </body>
