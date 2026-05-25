@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#101828" />
+    <meta name="description" content="Prototipo mobile-first de un juego de metro minimalista en HTML5 Canvas." />
+    <title>Metro táctil</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <main class="game-shell" aria-label="Prototipo de juego de metro táctil">
+      <header class="top-panel" aria-live="polite">
+        <div>
+          <p class="eyebrow">Prototipo HTML5</p>
+          <h1>Metro táctil</h1>
+        </div>
+        <div class="status-pill" id="statusPill">Línea nueva</div>
+      </header>
+
+      <section class="canvas-wrap" aria-label="Mapa jugable">
+        <canvas id="gameCanvas"></canvas>
+        <div class="hint-card" id="hintCard">
+          Arrastra entre estaciones para crear o ampliar líneas. Toca una línea para editarla.
+        </div>
+      </section>
+
+      <nav class="bottom-toolbar" aria-label="Herramientas del juego">
+        <button class="tool-button is-active" type="button" data-tool="line" aria-pressed="true">
+          <span aria-hidden="true">➕</span>
+          Línea nueva
+        </button>
+        <button class="tool-button" type="button" data-tool="erase" aria-pressed="false">
+          <span aria-hidden="true">⌫</span>
+          Borrador
+        </button>
+        <button class="tool-button" type="button" data-tool="pause" aria-pressed="false">
+          <span aria-hidden="true">⏸</span>
+          Pausa
+        </button>
+      </nav>
+    </main>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
