@@ -50,7 +50,13 @@ export function findLineAt(state, point) {
       const hit = pointToSegmentDistance(point, start, end);
 
       if (hit.distance <= GAME_CONFIG.lineHitboxRadius && (!closest || hit.distance < closest.distance)) {
-        closest = { line, index, distance: hit.distance };
+        closest = {
+          line,
+          index,
+          distance: hit.distance,
+          t: hit.t,
+          point: hit.point,
+        };
       }
     }
   }
@@ -63,7 +69,7 @@ export function pointToSegmentDistance(point, start, end) {
   const dy = end.y - start.y;
   const segmentLengthSq = dx * dx + dy * dy;
   if (!segmentLengthSq) {
-    return { distance: distance(point, start), t: 0 };
+    return { distance: distance(point, start), t: 0, point: start };
   }
 
   const t = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / segmentLengthSq));
@@ -72,7 +78,7 @@ export function pointToSegmentDistance(point, start, end) {
     y: start.y + t * dy,
   };
 
-  return { distance: distance(point, projection), t };
+  return { distance: distance(point, projection), t, point: projection };
 }
 
 export function getTouchPoint(canvas, event) {
