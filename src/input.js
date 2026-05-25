@@ -1,19 +1,103 @@
 import { GAME_CONFIG } from './config.js';
 import { findLineAt, findLineControlAt, findStationAt, getTouchPoint } from './geometry.js';
 import { ensureLineTrain } from './simulation.js';
-import { createLine, getStationPoint, panCamera, screenToWorld } from './state.js';
+import {
+  createLine,
+  getStationById,
+  getStationPoint,
+  panCamera,
+  screenToWorld,
+  zoomCameraAt,
+} from './state.js';
 
 export function bindTouchControls(canvas, state, onChange) {
   canvas.addEventListener('touchstart', (event) => handleTouchStart(event, canvas, state, onChange), { passive: false });
   canvas.addEventListener('touchmove', (event) => handleTouchMove(event, canvas, state, onChange), { passive: false });
   canvas.addEventListener('touchend', (event) => handleTouchEnd(event, canvas, state, onChange), { passive: false });
   canvas.addEventListener('touchcancel', (event) => handleTouchCancel(event, state, onChange), { passive: false });
+  canvas.addEventListener('wheel', (event) => handleWheel(event, canvas, state, onChange), { passive: false });
+
+  canvas.addEventListener('mousedown', (event) => handleMouseStart(event, canvas, state, onChange));
+  window.addEventListener('mousemove', (event) => handleMouseMove(event, canvas, state, onChange));
+  window.addEventListener('mouseup', (event) => handleMouseEnd(event, canvas, state, onChange));
 }
 
 function handleTouchStart(event, canvas, state, onChange) {
   event.preventDefault();
-  const point = getTouchPoint(canvas, event);
 
+  if (event.touches.length === 2) {
+    state.drag = null;
+    state.gesture = createPinchGesture(canvas, event, state);
+    onChange('Zoom');
+    return;
+  }
+
+  if (event.touches.length !== 1) return;
+  startSinglePointer(getTouchPoint(canvas, event), state, onChange);
+}
+
+function handleTouchMove(event, canvas, state, onChange) {
+  event.preventDefault();
+
+  if (state.gesture && event.touches.length === 2) {
+    updatePinchGesture(canvas, event, state);
+    onChange('Zoom');
+    return;
+  }
+
+  if (event.touches.length !== 1) return;
+  moveSinglePointer(getTouchPoint(canvas, event), state, onChange);
+}
+
+function handleTouchEnd(event, canvas, state, onChange) {
+  event.preventDefault();
+
+  if (state.gesture) {
+    state.gesture = null;
+    state.drag = null;
+    onChange('Línea nueva');
+    return;
+  }
+
+  if (!state.drag) return;
+  const point = getTouchPoint(canvas, event);
+  endSinglePointer(point, state, onChange);
+}
+
+function handleTouchCancel(event, state, onChange) {
+  event.preventDefault();
+  state.drag = null;
+  state.gesture = null;
+  state.selectedControl = null;
+  onChange();
+}
+
+function handleWheel(event, canvas, state, onChange) {
+  event.preventDefault();
+  const point = mousePoint(canvas, event);
+  const multiplier = Math.exp(-event.deltaY * 0.0015);
+  zoomCameraAt(state, point, state.camera.zoom * multiplier);
+  onChange('Zoom');
+}
+
+function handleMouseStart(event, canvas, state, onChange) {
+  event.preventDefault();
+  startSinglePointer(mousePoint(canvas, event), state, onChange);
+}
+
+function handleMouseMove(event, canvas, state, onChange) {
+  if (!state.drag) return;
+  event.preventDefault();
+  moveSinglePointer(mousePoint(canvas, event), state, onChange);
+}
+
+function handleMouseEnd(event, canvas, state, onChange) {
+  if (!state.drag) return;
+  event.preventDefault();
+  endSinglePointer(mousePoint(canvas, event), state, onChange);
+}
+
+function startSinglePointer(point, state, onChange) {
   if (state.tool === 'erase') {
     eraseAtPoint(state, point);
     onChange();
@@ -32,12 +116,13 @@ function handleTouchStart(event, canvas, state, onChange) {
       lastPoint: point,
       moved: false,
     };
-    onChange('Arrastra a otra estación');
+    onChange(state.pendingStationId ? 'Toca otra estación' : 'Arrastra o toca destino');
     return;
   }
 
   const control = findLineControlAt(state, point, state.selectedLineId);
   if (control) {
+    state.pendingStationId = null;
     state.selectedLineId = control.line.id;
     state.selectedControl = control;
     state.drag = {
@@ -55,11 +140,13 @@ function handleTouchStart(event, canvas, state, onChange) {
 
   const touchedLine = findLineAt(state, point);
   if (touchedLine) {
+    state.pendingStationId = null;
     state.selectedLineId = touchedLine.line.id;
     onChange('Línea seleccionada');
     return;
   }
 
+  state.pendingStationId = null;
   state.drag = {
     mode: 'pan-map',
     startPoint: point,
@@ -70,11 +157,9 @@ function handleTouchStart(event, canvas, state, onChange) {
   onChange('Moviendo mapa');
 }
 
-function handleTouchMove(event, canvas, state, onChange) {
-  event.preventDefault();
+function moveSinglePointer(point, state, onChange) {
   if (!state.drag) return;
 
-  const point = getTouchPoint(canvas, event);
   const dx = point.x - state.drag.lastPoint.x;
   const dy = point.y - state.drag.lastPoint.y;
   state.drag.currentPoint = point;
@@ -95,15 +180,13 @@ function handleTouchMove(event, canvas, state, onChange) {
   onChange();
 }
 
-function handleTouchEnd(event, canvas, state, onChange) {
-  event.preventDefault();
+function endSinglePointer(point, state, onChange) {
   if (!state.drag) return;
 
-  const point = getTouchPoint(canvas, event);
   const targetStation = findStationAt(state, point);
 
   if (state.drag.mode === 'new-line') {
-    finishNewLine(state, state.drag.startStation, targetStation, onChange);
+    finishNewLine(state, state.drag.startStation, targetStation, state.drag.moved, onChange);
   }
 
   if (state.drag.mode === 'extend-line') {
@@ -112,21 +195,41 @@ function handleTouchEnd(event, canvas, state, onChange) {
 
   state.drag = null;
   state.selectedControl = null;
-  onChange('Línea nueva');
 }
 
-function handleTouchCancel(event, state, onChange) {
-  event.preventDefault();
-  state.drag = null;
-  state.selectedControl = null;
-  onChange();
-}
+function finishNewLine(state, startStation, targetStation, moved, onChange) {
+  if (!moved) {
+    finishStationTap(state, startStation, onChange);
+    return;
+  }
 
-function finishNewLine(state, startStation, targetStation, onChange) {
   if (!targetStation) {
     onChange('Suelta sobre otra estación');
     return;
   }
+
+  connectStations(state, startStation, targetStation, onChange);
+}
+
+function finishStationTap(state, station, onChange) {
+  if (!state.pendingStationId) {
+    state.pendingStationId = station.id;
+    onChange('Toca estación destino');
+    return;
+  }
+
+  const startStation = getStationById(state, state.pendingStationId);
+  state.pendingStationId = null;
+
+  if (!startStation) {
+    onChange('Línea nueva');
+    return;
+  }
+
+  connectStations(state, startStation, station, onChange);
+}
+
+function connectStations(state, startStation, targetStation, onChange) {
   if (startStation.id === targetStation.id) {
     onChange('Elige otra estación');
     return;
@@ -170,6 +273,7 @@ function finishLineExtension(state, control, targetStation, onChange) {
 function eraseAtPoint(state, point) {
   const station = findStationAt(state, point);
   if (station) {
+    state.pendingStationId = null;
     state.lines.forEach((line) => {
       line.stationIds = line.stationIds.filter((stationId) => stationId !== station.id);
     });
@@ -181,7 +285,51 @@ function eraseAtPoint(state, point) {
 
   const lineHit = findLineAt(state, point);
   if (lineHit) {
+    state.pendingStationId = null;
     state.lines = state.lines.filter((line) => line.id !== lineHit.line.id);
     state.trains = state.trains.filter((train) => train.lineId !== lineHit.line.id);
   }
+}
+
+function createPinchGesture(canvas, event, state) {
+  const points = [...event.touches].map((touch) => touchPoint(canvas, touch));
+  return {
+    startDistance: distance(points[0], points[1]),
+    startZoom: state.camera.zoom,
+    center: midpoint(points[0], points[1]),
+  };
+}
+
+function updatePinchGesture(canvas, event, state) {
+  const points = [...event.touches].map((touch) => touchPoint(canvas, touch));
+  const currentDistance = distance(points[0], points[1]);
+  const center = midpoint(points[0], points[1]);
+  zoomCameraAt(state, center, state.gesture.startZoom * (currentDistance / state.gesture.startDistance));
+}
+
+function touchPoint(canvas, touch) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: touch.clientX - rect.left,
+    y: touch.clientY - rect.top,
+  };
+}
+
+function mousePoint(canvas, event) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+  };
+}
+
+function distance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function midpoint(a, b) {
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+  };
 }
