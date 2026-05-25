@@ -92,11 +92,13 @@ function helperForState(status) {
   if (status === 'Zoom') return 'Haz pinza con dos dedos o usa la rueda para acercar y alejar.';
   if (status === 'Toca estación destino') return 'Ahora toca otra estación para crear la línea.';
   if (status === 'Arrastra o toca destino') return 'Arrastra hasta otra estación o suelta y toca una segunda estación.';
+  if (status === 'Arrastra a estación') return 'Suelta sobre una estación para insertar un nuevo ramal en esa línea.';
+  if (status === 'Ramal añadido') return 'Ramal añadido desde el tramo de línea seleccionado.';
   if (status === 'Línea creada') return 'Línea creada. Puedes crear otra desde cualquier estación.';
-  if (status === 'Línea seleccionada') return 'Toca un extremo para ampliarla o un nodo intermedio para moverlo.';
+  if (status === 'Línea seleccionada') return 'Arrastra desde un extremo para ampliarla o desde el medio hacia una estación.';
   if (status === 'Editando trazado') return 'Arrastra el punto de control. Los extremos amplían la línea.';
   if (status === 'Moviendo mapa') return 'Arrastra sobre el fondo para recorrer el mapa infinito.';
-  if (status === 'Mapa infinito') return 'Toca una estación y luego otra para crear líneas. Arrastra el fondo para moverte.';
+  if (status === 'Mapa infinito') return 'Toca estaciones para crear líneas. Arrastra desde el medio de una línea para ramificar.';
   return 'Toca dos estaciones para crear líneas. Arrastra el fondo para moverte por el mapa.';
 }
 
