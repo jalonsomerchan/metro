@@ -34,14 +34,26 @@ src/
   renderer.js     Dibujo del mapa, estaciones, pasajeros y trenes.
   simulation.js   Movimiento de trenes, colas y transbordos.
   state.js        Estado, entidades y helpers de datos.
+scripts/
+  build.mjs       Genera dist/ para GitHub Pages.
 tests/
   smoke.test.mjs  Comprobaciones básicas del prototipo.
+.github/workflows/
+  ci.yml          Ejecuta tests y build en PRs y pushes a main.
+  pages.yml       Publica dist/ en GitHub Pages desde main.
 ```
 
 ## Comandos
 
 ```sh
 npm test
+npm run build
 ```
 
-Para probarlo localmente basta servir la carpeta con cualquier servidor estático.
+`npm run build` genera una carpeta `dist/` con el sitio estático listo para publicar.
+
+## GitHub Pages
+
+El workflow `Deploy GitHub Pages` publica automáticamente el contenido de `dist/` cuando se hace push a `main`. También se puede lanzar manualmente desde la pestaña **Actions** con `workflow_dispatch`.
+
+En la configuración del repositorio, GitHub Pages debe usar **GitHub Actions** como fuente de despliegue.
