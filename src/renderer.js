@@ -61,16 +61,20 @@ function drawLines(context, state) {
     const stations = getLineStations(state, line);
     if (stations.length < 2) continue;
 
+    const points = stations.map((station) => getStationPoint(state, station));
+    const displayPoints = withTerminalOverhangs(points);
+
     context.save();
     context.strokeStyle = line.color;
-    context.lineWidth = state.selectedLineId === line.id ? 18 : 14;
-    context.lineCap = 'round';
+    context.lineWidth = state.selectedLineId === line.id
+      ? GAME_CONFIG.selectedLineWidth
+      : GAME_CONFIG.lineWidth;
+    context.lineCap = 'butt';
     context.lineJoin = 'round';
     context.globalAlpha = state.selectedLineId && state.selectedLineId !== line.id ? 0.48 : 1;
     context.beginPath();
 
-    stations.forEach((station, index) => {
-      const point = getStationPoint(state, station);
+    displayPoints.forEach((point, index) => {
       if (index === 0) context.moveTo(point.x, point.y);
       else context.lineTo(point.x, point.y);
     });
@@ -78,6 +82,31 @@ function drawLines(context, state) {
     context.stroke();
     context.restore();
   }
+}
+
+function withTerminalOverhangs(points) {
+  if (points.length < 2) return points;
+
+  const displayPoints = points.map((point) => ({ ...point }));
+  displayPoints[0] = extendPoint(points[0], points[1], GAME_CONFIG.terminalExtensionLength);
+  displayPoints[displayPoints.length - 1] = extendPoint(
+    points[points.length - 1],
+    points[points.length - 2],
+    GAME_CONFIG.terminalExtensionLength,
+  );
+
+  return displayPoints;
+}
+
+function extendPoint(point, neighbor, amount) {
+  const dx = point.x - neighbor.x;
+  const dy = point.y - neighbor.y;
+  const length = Math.hypot(dx, dy) || 1;
+
+  return {
+    x: point.x + (dx / length) * amount,
+    y: point.y + (dy / length) * amount,
+  };
 }
 
 function drawStations(context, state) {
@@ -151,8 +180,8 @@ function drawDragPreview(context, state) {
 
   context.save();
   context.strokeStyle = state.drag.line?.color || '#ef2b24';
-  context.lineWidth = 10;
-  context.lineCap = 'round';
+  context.lineWidth = GAME_CONFIG.lineWidth;
+  context.lineCap = 'butt';
   context.setLineDash([14, 10]);
   context.beginPath();
   context.moveTo(state.drag.startPoint.x, state.drag.startPoint.y);
