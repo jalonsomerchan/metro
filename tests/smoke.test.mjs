@@ -17,7 +17,7 @@ test('HTML includes mobile viewport, fullscreen canvas and hamburger tools menu'
   assert.match(html, /data-tool="pause"/);
 });
 
-test('touch input prevents browser gestures and supports map panning', () => {
+test('touch input prevents browser gestures and prioritizes station line creation', () => {
   const input = read('src/input.js');
   const css = read('src/styles.css');
 
@@ -26,10 +26,11 @@ test('touch input prevents browser gestures and supports map panning', () => {
   assert.match(input, /touchend/);
   assert.match(input, /preventDefault\(\)/);
   assert.match(input, /passive: false/);
+  assert.match(input, /state\.tool === 'line' && station/);
+  assert.match(input, /Línea creada/);
   assert.match(input, /pan-map/);
   assert.match(input, /panCamera/);
   assert.match(css, /touch-action:\s*none/);
-  assert.match(css, /position:\s*fixed/);
 });
 
 test('simulation keeps station queues, progressive stations and transfer logic', () => {
@@ -45,12 +46,23 @@ test('simulation keeps station queues, progressive stations and transfer logic',
   assert.match(simulation, /passengerCanUseOtherLine/);
 });
 
-test('geometry exposes larger touch hitboxes and line controls', () => {
+test('geometry exposes larger touch hitboxes and selected line controls', () => {
   const config = read('src/config.js');
   const geometry = read('src/geometry.js');
 
-  assert.match(config, /stationHitboxRadius:\s*38/);
+  assert.match(config, /stationHitboxRadius:\s*56/);
   assert.match(config, /stationSpawnMs/);
   assert.match(geometry, /findLineControlAt/);
+  assert.match(geometry, /selectedLineId/);
   assert.match(geometry, /isEnd/);
+});
+
+test('renderer and styles use a paper-like Mini Metro inspired look', () => {
+  const renderer = read('src/renderer.js');
+  const css = read('src/styles.css');
+
+  assert.match(renderer, /drawPaper/);
+  assert.match(renderer, /lineWidth = state\.selectedLineId === line\.id \? 18 : 14/);
+  assert.match(css, /--paper-color/);
+  assert.match(css, /--station-stroke-color/);
 });
