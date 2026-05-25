@@ -8,10 +8,12 @@ export const createInitialState = () => ({
   tool: 'line',
   paused: false,
   menuOpen: false,
+  pendingStationId: null,
   selectedLineId: null,
   selectedControl: null,
   drag: null,
-  camera: { x: 0, y: 0 },
+  gesture: null,
+  camera: { x: 0, y: 0, zoom: 1 },
   viewport: { width: 0, height: 0, dpr: 1 },
   stations: [
     createStation(-150, -120, 'circle'),
@@ -76,7 +78,7 @@ export function spawnStationNearCamera(state) {
     y: state.viewport.height / 2,
   });
   const angle = Math.random() * Math.PI * 2;
-  const distance = 190 + Math.random() * 260;
+  const distance = (190 + Math.random() * 260) / state.camera.zoom;
   const station = addStation(
     state,
     center.x + Math.cos(angle) * distance,
@@ -113,21 +115,29 @@ export function getStationPoint(state, station) {
 
 export function worldToScreen(state, point) {
   return {
-    x: point.x - state.camera.x + state.viewport.width / 2,
-    y: point.y - state.camera.y + state.viewport.height / 2,
+    x: (point.x - state.camera.x) * state.camera.zoom + state.viewport.width / 2,
+    y: (point.y - state.camera.y) * state.camera.zoom + state.viewport.height / 2,
   };
 }
 
 export function screenToWorld(state, point) {
   return {
-    x: point.x + state.camera.x - state.viewport.width / 2,
-    y: point.y + state.camera.y - state.viewport.height / 2,
+    x: (point.x - state.viewport.width / 2) / state.camera.zoom + state.camera.x,
+    y: (point.y - state.viewport.height / 2) / state.camera.zoom + state.camera.y,
   };
 }
 
 export function panCamera(state, dx, dy) {
-  state.camera.x -= dx;
-  state.camera.y -= dy;
+  state.camera.x -= dx / state.camera.zoom;
+  state.camera.y -= dy / state.camera.zoom;
+}
+
+export function zoomCameraAt(state, screenPoint, nextZoom) {
+  const before = screenToWorld(state, screenPoint);
+  state.camera.zoom = clamp(nextZoom, GAME_CONFIG.minZoom, GAME_CONFIG.maxZoom);
+  const after = screenToWorld(state, screenPoint);
+  state.camera.x += before.x - after.x;
+  state.camera.y += before.y - after.y;
 }
 
 export function getLineStations(state, line) {
