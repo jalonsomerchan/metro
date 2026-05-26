@@ -1,6 +1,6 @@
 import { GAME_CONFIG } from './config.js';
 import { getTerminalControl } from './geometry.js';
-import { getLineById, getLineStations, getStationPoint, isTransferStation } from './state.js';
+import { getLineById, getLineStations, getStationById, getStationPoint, isTransferStation } from './state.js';
 
 export function resizeCanvas(canvas, state) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -20,11 +20,13 @@ export function resizeCanvas(canvas, state) {
 
 export function render(canvas, state) {
   const context = canvas.getContext('2d');
+  const now = performance.now();
   context.clearRect(0, 0, state.viewport.width, state.viewport.height);
   drawPaper(context, state);
   drawLines(context, state);
   drawStations(context, state);
   drawTrains(context, state);
+  drawPassengerAnimations(context, state, now);
   drawDragPreview(context, state);
 }
 
@@ -172,27 +174,90 @@ function drawTrains(context, state) {
     const line = getLineById(state, train.lineId);
     if (!line) continue;
 
-    const stations = getLineStations(state, line);
-    const startStation = stations[train.segmentIndex];
-    const endStation = stations[train.segmentIndex + train.direction];
-    if (!startStation || !endStation) continue;
-
-    const start = getStationPoint(state, startStation);
-    const end = getStationPoint(state, endStation);
-    const x = start.x + (end.x - start.x) * train.progress;
-    const y = start.y + (end.y - start.y) * train.progress;
+    const trainPoint = getTrainPoint(state, train, line);
+    if (!trainPoint) continue;
 
     context.save();
-    context.translate(x, y);
-    context.rotate(Math.atan2(end.y - start.y, end.x - start.x));
+    context.translate(trainPoint.x, trainPoint.y);
+    context.rotate(trainPoint.angle);
     context.fillStyle = '#f5f0e6';
     context.strokeStyle = line.color;
     context.lineWidth = 4;
-    roundedRect(context, -16, -9, 32, 18, 2);
+    roundedRect(
+      context,
+      -GAME_CONFIG.trainBodyLength / 2,
+      -GAME_CONFIG.trainBodyHeight / 2,
+      GAME_CONFIG.trainBodyLength,
+      GAME_CONFIG.trainBodyHeight,
+      3,
+    );
     context.fill();
     context.stroke();
+    drawOnboardPassengers(context, train);
     context.restore();
   }
+}
+
+function drawOnboardPassengers(context, train) {
+  train.passengers.slice(0, GAME_CONFIG.trainCapacity).forEach((passenger, index) => {
+    const cols = 3;
+    const x = -10 + (index % cols) * 10;
+    const y = index < cols ? -3.5 : 4.5;
+    context.fillStyle = '#403532';
+    drawShape(context, passenger.destinationType, x, y, 3.2);
+    context.fill();
+  });
+}
+
+function drawPassengerAnimations(context, state, now) {
+  for (const animation of state.passengerAnimations) {
+    const from = resolveAnimationPoint(state, animation.from);
+    const to = resolveAnimationPoint(state, animation.to);
+    if (!from || !to) continue;
+
+    const rawProgress = Math.min(Math.max((now - animation.startedAt) / animation.duration, 0), 1);
+    const progress = easeInOut(rawProgress);
+    const x = from.x + (to.x - from.x) * progress;
+    const y = from.y + (to.y - from.y) * progress;
+
+    context.save();
+    context.globalAlpha = 1 - rawProgress * 0.25;
+    context.fillStyle = '#403532';
+    drawShape(context, animation.passenger.destinationType, x, y, 5);
+    context.fill();
+    context.restore();
+  }
+}
+
+function resolveAnimationPoint(state, endpoint) {
+  if (endpoint.kind === 'station') {
+    const station = getStationById(state, endpoint.stationId);
+    if (!station) return null;
+    const point = getStationPoint(state, station);
+    return { x: point.x + 22, y: point.y + 2 };
+  }
+
+  const train = state.trains.find((item) => item.id === endpoint.trainId);
+  const line = train ? getLineById(state, train.lineId) : null;
+  if (!train || !line) return null;
+
+  return getTrainPoint(state, train, line);
+}
+
+function getTrainPoint(state, train, line) {
+  const stations = getLineStations(state, line);
+  const startStation = stations[train.segmentIndex];
+  const endStation = stations[train.segmentIndex + train.direction];
+  if (!startStation || !endStation) return null;
+
+  const start = getStationPoint(state, startStation);
+  const end = getStationPoint(state, endStation);
+
+  return {
+    x: start.x + (end.x - start.x) * train.progress,
+    y: start.y + (end.y - start.y) * train.progress,
+    angle: Math.atan2(end.y - start.y, end.x - start.x),
+  };
 }
 
 function drawDragPreview(context, state) {
@@ -248,6 +313,10 @@ function isVisible(point, margin, state) {
 
 function positiveModulo(value, divisor) {
   return ((value % divisor) + divisor) % divisor;
+}
+
+function easeInOut(value) {
+  return value * value * (3 - 2 * value);
 }
 
 function getCssColor(token) {

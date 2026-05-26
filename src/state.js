@@ -16,12 +16,13 @@ export const createInitialState = () => ({
   camera: { x: 0, y: 0, zoom: 1 },
   viewport: { width: 0, height: 0, dpr: 1 },
   stations: [
-    createStation(-150, -120, 'circle'),
-    createStation(160, -95, 'triangle'),
-    createStation(15, 90, 'square'),
+    createStation(-210, -150, 'circle'),
+    createStation(210, -125, 'triangle'),
+    createStation(20, 170, 'square'),
   ],
   lines: [],
   trains: [],
+  passengerAnimations: [],
   passengers: [],
   lastSpawnAt: 0,
   lastStationSpawnAt: 0,
@@ -42,6 +43,18 @@ export function createPassenger(originId, destinationType) {
     id: nextId('passenger'),
     originId,
     destinationType,
+  };
+}
+
+export function createPassengerAnimation(passenger, from, to, startedAt, mode) {
+  return {
+    id: nextId('anim'),
+    passenger,
+    from,
+    to,
+    mode,
+    startedAt,
+    duration: GAME_CONFIG.passengerAnimMs,
   };
 }
 
@@ -77,15 +90,22 @@ export function spawnStationNearCamera(state) {
     x: state.viewport.width / 2,
     y: state.viewport.height / 2,
   });
-  const angle = Math.random() * Math.PI * 2;
-  const distance = (190 + Math.random() * 260) / state.camera.zoom;
-  const station = addStation(
-    state,
-    center.x + Math.cos(angle) * distance,
-    center.y + Math.sin(angle) * distance,
-    randomStationType(),
-  );
-  return station;
+
+  for (let attempt = 0; attempt < 18; attempt += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = (GAME_CONFIG.stationSpawnMinDistance
+      + Math.random() * (GAME_CONFIG.stationSpawnMaxDistance - GAME_CONFIG.stationSpawnMinDistance)) / state.camera.zoom;
+    const point = {
+      x: center.x + Math.cos(angle) * distance,
+      y: center.y + Math.sin(angle) * distance,
+    };
+
+    if (isFarEnoughFromStations(state, point)) {
+      return addStation(state, point.x, point.y, randomStationType());
+    }
+  }
+
+  return null;
 }
 
 export function maybeSpawnStation(state, now) {
@@ -204,4 +224,10 @@ export function setTool(state, tool) {
 
 export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function isFarEnoughFromStations(state, point) {
+  return state.stations.every((station) => (
+    Math.hypot(station.x - point.x, station.y - point.y) >= GAME_CONFIG.stationMinDistance
+  ));
 }
