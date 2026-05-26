@@ -59,7 +59,7 @@ test('simulation bounces at terminal stations and uses planned transfer stops', 
   assert.match(simulation, /const arrivedIndex = train\.segmentIndex \+ train\.direction/);
   assert.match(simulation, /findTransferStopForLine/);
   assert.match(simulation, /passenger\.transferStationId === station\.id/);
-  assert.match(simulation, /passenger\.transferStationId = transferStationId/);
+  assert.match(simulation, /passenger\.transferStationId = passenger\.destinationType === station\.type \? null : transferStationId/);
   assert.match(simulation, /excludedFirstLineId/);
   assert.match(simulation, /visitedLines/);
 });
