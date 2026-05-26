@@ -95,6 +95,40 @@ h1 {
   text-align: right;
 }
 
+.resource-panel {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 4.1rem);
+  left: var(--space-3);
+  z-index: 4;
+  display: grid;
+  gap: 0.38rem;
+  padding: 0.48rem 0.58rem;
+  border: 2px solid rgba(64, 53, 50, 0.16);
+  border-radius: 13px;
+  background: var(--panel-color);
+  box-shadow: var(--shadow-soft);
+  color: var(--ink-color);
+  font-size: 0.82rem;
+  font-weight: 950;
+  pointer-events: none;
+}
+
+.resource-item {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-width: 4.1rem;
+}
+
+.resource-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.18rem;
+  color: var(--station-stroke-color);
+  font-size: 1rem;
+  font-weight: 950;
+}
+
 .menu-toggle {
   position: fixed;
   top: calc(env(safe-area-inset-top) + 0.7rem);

@@ -1,7 +1,9 @@
 import { GAME_CONFIG } from './config.js';
-import { findLineAt, findLineControlAt, findStationAt, getTouchPoint } from './geometry.js';
+import { findLineAt, findLineControlAt, findStationAt, findTerminalAt, getTouchPoint } from './geometry.js';
 import { ensureLineTrain } from './simulation.js';
 import {
+  canAddTrack,
+  canCreateLine,
   createLine,
   getStationById,
   getStationPoint,
@@ -106,6 +108,24 @@ function startSinglePointer(point, state, onChange) {
 
   if (state.tool === 'pause') return;
 
+  const terminal = findTerminalAt(state, point, state.selectedLineId);
+  if (terminal) {
+    state.pendingStationId = null;
+    state.selectedLineId = terminal.line.id;
+    state.selectedControl = terminal;
+    state.drag = {
+      mode: 'extend-line',
+      line: terminal.line,
+      control: terminal,
+      startPoint: terminal.point,
+      currentPoint: point,
+      lastPoint: point,
+      moved: false,
+    };
+    onChange('Amplía desde la T');
+    return;
+  }
+
   const station = findStationAt(state, point);
   if (state.tool === 'line' && station) {
     state.drag = {
@@ -126,7 +146,7 @@ function startSinglePointer(point, state, onChange) {
     state.selectedLineId = control.line.id;
     state.selectedControl = control;
     state.drag = {
-      mode: control.isEnd ? 'extend-line' : 'edit-control',
+      mode: 'edit-control',
       line: control.line,
       control,
       startPoint: getStationPoint(state, control.station),
@@ -257,6 +277,11 @@ function connectStations(state, startStation, targetStation, onChange) {
     return;
   }
 
+  if (!canCreateLine(state)) {
+    onChange('Sin recursos');
+    return;
+  }
+
   const line = createLine([startStation.id, targetStation.id]);
   state.lines.push(line);
   state.selectedLineId = line.id;
@@ -272,6 +297,11 @@ function finishLineExtension(state, control, targetStation, onChange) {
   const line = control.line;
 
   if (line.stationIds.includes(targetStation.id)) return;
+
+  if (!canAddTrack(state)) {
+    onChange('Sin vías');
+    return;
+  }
 
   if (control.index === 0) {
     line.stationIds.unshift(targetStation.id);
@@ -300,6 +330,11 @@ function finishLineBranch(state, drag, targetStation, onChange) {
     return;
   }
 
+  if (!canAddTrack(state, 2)) {
+    onChange('Sin vías');
+    return;
+  }
+
   line.stationIds.splice(drag.segmentIndex + 1, 0, targetStation.id);
   state.selectedLineId = line.id;
   ensureLineTrain(state, line);
@@ -307,18 +342,6 @@ function finishLineBranch(state, drag, targetStation, onChange) {
 }
 
 function eraseAtPoint(state, point) {
-  const station = findStationAt(state, point);
-  if (station) {
-    state.pendingStationId = null;
-    state.lines.forEach((line) => {
-      line.stationIds = line.stationIds.filter((stationId) => stationId !== station.id);
-    });
-    state.stations = state.stations.filter((item) => item.id !== station.id);
-    state.lines = state.lines.filter((line) => line.stationIds.length >= 2);
-    state.trains = state.trains.filter((train) => state.lines.some((line) => line.id === train.lineId));
-    return;
-  }
-
   const lineHit = findLineAt(state, point);
   if (lineHit) {
     state.pendingStationId = null;
