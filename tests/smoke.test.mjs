@@ -50,14 +50,27 @@ test('state exposes resources, passenger animations and wider station spacing', 
   assert.match(state, /canAddTrack/);
 });
 
-test('simulation animates boarding and preserves train progress when lines change', () => {
+test('simulation bounces at terminal stations and routes transfers through the network', () => {
+  const simulation = read('src/simulation.js');
+
+  assert.match(simulation, /train\.segmentIndex === 0[\s\S]*train\.direction = 1/);
+  assert.match(simulation, /train\.segmentIndex === lastIndex[\s\S]*train\.direction = -1/);
+  assert.match(simulation, /const arrivedIndex = train\.segmentIndex \+ train\.direction/);
+  assert.match(simulation, /canReachDestinationFromStation/);
+  assert.match(simulation, /lineCanHelpPassenger/);
+  assert.match(simulation, /excludedFirstLineId/);
+  assert.match(simulation, /visitedLines/);
+  assert.match(simulation, /shouldTransfer/);
+});
+
+test('simulation still animates passenger boarding and preserves train progress when lines change', () => {
   const simulation = read('src/simulation.js');
 
   assert.match(simulation, /createPassengerAnimation/);
   assert.match(simulation, /addPassengerAnimation/);
   assert.match(simulation, /prunePassengerAnimations/);
   assert.match(simulation, /train\.progress = Math\.min\(Math\.max\(train\.progress, 0\), 0\.98\)/);
-  assert.match(simulation, /train\.segmentIndex = Math\.min/);
+  assert.match(simulation, /train\.segmentIndex = Math\.min\(Math\.max\(train\.segmentIndex, 0\), lastIndex\)/);
 });
 
 test('geometry detects real terminal hit areas', () => {
