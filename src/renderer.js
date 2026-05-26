@@ -193,20 +193,39 @@ function drawTrains(context, state) {
     );
     context.fill();
     context.stroke();
-    drawOnboardPassengers(context, train);
+    drawSeatGrid(context, train);
     context.restore();
   }
 }
 
-function drawOnboardPassengers(context, train) {
-  train.passengers.slice(0, GAME_CONFIG.trainCapacity).forEach((passenger, index) => {
-    const cols = 3;
-    const x = -10 + (index % cols) * 10;
-    const y = index < cols ? -3.5 : 4.5;
-    context.fillStyle = '#403532';
-    drawShape(context, passenger.destinationType, x, y, 3.2);
+function drawSeatGrid(context, train) {
+  const seats = getSeatPositions();
+  seats.forEach((seat, index) => {
+    const passenger = train.passengers[index];
+    context.save();
+    context.strokeStyle = 'rgba(64, 53, 50, 0.34)';
+    context.lineWidth = 1.2;
+    context.fillStyle = passenger ? '#403532' : 'rgba(64, 53, 50, 0.08)';
+    context.beginPath();
+    context.arc(seat.x, seat.y, GAME_CONFIG.seatRadius, 0, Math.PI * 2);
     context.fill();
+    context.stroke();
+
+    if (passenger) {
+      context.fillStyle = '#f5f0e6';
+      drawShape(context, passenger.destinationType, seat.x, seat.y, GAME_CONFIG.seatRadius - 0.7);
+      context.fill();
+    }
+    context.restore();
   });
+}
+
+function getSeatPositions() {
+  const cols = 3;
+  return Array.from({ length: GAME_CONFIG.trainCapacity }, (_, index) => ({
+    x: -11 + (index % cols) * 11,
+    y: index < cols ? -4.5 : 4.5,
+  }));
 }
 
 function drawPassengerAnimations(context, state, now) {
