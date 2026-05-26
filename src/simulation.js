@@ -98,7 +98,6 @@ function moveTrain(state, train, now, deltaMs) {
 
 function stopAtStation(state, train, station, lineId, now) {
   const remainingPassengers = [];
-  const currentLineHasDestination = lineCanReachType(state, lineId, null);
 
   for (const passenger of train.passengers) {
     if (passenger.destinationType === station.type) {
