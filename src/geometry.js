@@ -19,20 +19,38 @@ export function findStationAt(state, point) {
   return closest?.station || null;
 }
 
+export function findTerminalAt(state, point, selectedLineId = null) {
+  let closest = null;
+
+  for (const line of state.lines) {
+    if (selectedLineId && line.id !== selectedLineId) continue;
+
+    const stations = getLineStations(state, line);
+    if (stations.length < 2) continue;
+
+    const firstTerminal = getTerminalControl(state, line, stations, 0);
+    const lastTerminal = getTerminalControl(state, line, stations, stations.length - 1);
+
+    for (const terminal of [firstTerminal, lastTerminal]) {
+      const terminalDistance = distance(terminal.point, point);
+      if (terminalDistance <= GAME_CONFIG.terminalHitboxRadius && (!closest || terminalDistance < closest.distance)) {
+        closest = { ...terminal, distance: terminalDistance };
+      }
+    }
+  }
+
+  return closest;
+}
+
 export function findLineControlAt(state, point, selectedLineId = null) {
   for (const line of state.lines) {
     if (selectedLineId && line.id !== selectedLineId) continue;
 
     const stations = getLineStations(state, line);
-    for (let index = 0; index < stations.length; index += 1) {
+    for (let index = 1; index < stations.length - 1; index += 1) {
       const stationPoint = getStationPoint(state, stations[index]);
-      const isEnd = index === 0 || index === stations.length - 1;
-      const hitRadius = isEnd
-        ? GAME_CONFIG.controlPointHitboxRadius + 8
-        : GAME_CONFIG.controlPointHitboxRadius;
-
-      if (distance(stationPoint, point) <= hitRadius) {
-        return { line, station: stations[index], index, isEnd };
+      if (distance(stationPoint, point) <= GAME_CONFIG.controlPointHitboxRadius) {
+        return { line, station: stations[index], index, isEnd: false };
       }
     }
   }
@@ -62,6 +80,31 @@ export function findLineAt(state, point) {
   }
 
   return closest;
+}
+
+export function getTerminalControl(state, line, stations, index) {
+  const station = stations[index];
+  const neighbor = index === 0 ? stations[1] : stations[index - 1];
+  const stationPoint = getStationPoint(state, station);
+  const neighborPoint = getStationPoint(state, neighbor);
+  const dx = stationPoint.x - neighborPoint.x;
+  const dy = stationPoint.y - neighborPoint.y;
+  const length = Math.hypot(dx, dy) || 1;
+
+  return {
+    line,
+    station,
+    index,
+    isEnd: true,
+    point: {
+      x: stationPoint.x + (dx / length) * GAME_CONFIG.terminalExtensionLength,
+      y: stationPoint.y + (dy / length) * GAME_CONFIG.terminalExtensionLength,
+    },
+    normal: {
+      x: -dy / length,
+      y: dx / length,
+    },
+  };
 }
 
 export function pointToSegmentDistance(point, start, end) {
