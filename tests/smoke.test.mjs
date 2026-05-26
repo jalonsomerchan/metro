@@ -35,18 +35,29 @@ test('input supports T terminal extension, resources, safe delete and branching'
   assert.match(css, /touch-action:\s*none/);
 });
 
-test('state exposes limited line and track resources', () => {
+test('state exposes resources, passenger animations and wider station spacing', () => {
   const state = read('src/state.js');
   const config = read('src/config.js');
 
   assert.match(config, /initialLineLimit/);
   assert.match(config, /initialTrackLimit/);
-  assert.match(config, /stationsPerResourceBonus/);
-  assert.match(state, /getResourceStatus/);
-  assert.match(state, /getLineLimit/);
-  assert.match(state, /getTrackLimit/);
+  assert.match(config, /stationMinDistance/);
+  assert.match(config, /passengerAnimMs/);
+  assert.match(state, /passengerAnimations:\s*\[\]/);
+  assert.match(state, /createPassengerAnimation/);
+  assert.match(state, /isFarEnoughFromStations/);
   assert.match(state, /canCreateLine/);
   assert.match(state, /canAddTrack/);
+});
+
+test('simulation animates boarding and preserves train progress when lines change', () => {
+  const simulation = read('src/simulation.js');
+
+  assert.match(simulation, /createPassengerAnimation/);
+  assert.match(simulation, /addPassengerAnimation/);
+  assert.match(simulation, /prunePassengerAnimations/);
+  assert.match(simulation, /train\.progress = Math\.min\(Math\.max\(train\.progress, 0\), 0\.98\)/);
+  assert.match(simulation, /train\.segmentIndex = Math\.min/);
 });
 
 test('geometry detects real terminal hit areas', () => {
@@ -60,14 +71,14 @@ test('geometry detects real terminal hit areas', () => {
   assert.match(geometry, /normal/);
 });
 
-test('renderer draws lines below stations with T terminals', () => {
+test('renderer draws trains with onboard passengers and passenger animations', () => {
   const renderer = read('src/renderer.js');
   const css = read('src/styles.css');
 
   assert.match(renderer, /drawPaper[\s\S]*drawLines[\s\S]*drawStations/);
-  assert.match(renderer, /drawTerminalCaps/);
-  assert.match(renderer, /terminalCapLength/);
-  assert.match(renderer, /GAME_CONFIG\.lineWidth/);
+  assert.match(renderer, /drawOnboardPassengers/);
+  assert.match(renderer, /drawPassengerAnimations/);
+  assert.match(renderer, /resolveAnimationPoint/);
+  assert.match(renderer, /trainBodyLength/);
   assert.match(css, /resource-panel/);
-  assert.match(css, /--paper-color/);
 });
