@@ -6,7 +6,6 @@ import {
   getLineById,
   getLineStations,
   getStationById,
-  isTransferStation,
   maybeSpawnStation,
 } from './state.js';
 
@@ -21,10 +20,11 @@ export function ensureLineTrain(state, line) {
     return;
   }
 
-  train.segmentIndex = Math.min(train.segmentIndex, Math.max(line.stationIds.length - 2, 0));
+  const lastIndex = line.stationIds.length - 1;
+  train.segmentIndex = Math.min(Math.max(train.segmentIndex, 0), lastIndex);
   train.progress = Math.min(Math.max(train.progress, 0), 0.98);
-  if (train.segmentIndex <= 0 && train.direction < 0) train.direction = 1;
-  if (train.segmentIndex >= line.stationIds.length - 1 && train.direction > 0) train.direction = -1;
+  if (train.segmentIndex === 0 && train.direction < 0) train.direction = 1;
+  if (train.segmentIndex === lastIndex && train.direction > 0) train.direction = -1;
 }
 
 export function tickSimulation(state, now, deltaMs) {
@@ -63,28 +63,29 @@ function moveTrain(state, train, now, deltaMs) {
     return;
   }
 
+  const lastIndex = line.stationIds.length - 1;
+  train.segmentIndex = Math.min(Math.max(train.segmentIndex, 0), lastIndex);
+  if (train.segmentIndex === 0 && train.direction < 0) train.direction = 1;
+  if (train.segmentIndex === lastIndex && train.direction > 0) train.direction = -1;
+
   if (train.dwellUntil > now) {
     return;
   }
 
-  train.segmentIndex = Math.min(train.segmentIndex, line.stationIds.length - 2);
   train.progress += GAME_CONFIG.trainSpeed * deltaMs;
 
   if (train.progress < 1) {
     return;
   }
 
+  const arrivedIndex = train.segmentIndex + train.direction;
+  train.segmentIndex = Math.min(Math.max(arrivedIndex, 0), lastIndex);
   train.progress = 0;
-  train.segmentIndex += train.direction;
 
-  if (train.segmentIndex >= line.stationIds.length - 1) {
-    train.segmentIndex = line.stationIds.length - 1;
-    train.direction = -1;
-  }
-
-  if (train.segmentIndex <= 0) {
-    train.segmentIndex = 0;
+  if (train.segmentIndex === 0) {
     train.direction = 1;
+  } else if (train.segmentIndex === lastIndex) {
+    train.direction = -1;
   }
 
   const stationId = line.stationIds[train.segmentIndex];
@@ -104,7 +105,10 @@ function stopAtStation(state, train, station, lineId, now) {
       continue;
     }
 
-    if (isTransferStation(state, station.id) && passengerCanUseOtherLine(state, passenger, station.id, lineId)) {
+    const shouldTransfer = !lineCanReachType(state, lineId, passenger.destinationType)
+      && canReachDestinationFromStation(state, station.id, passenger.destinationType, lineId);
+
+    if (shouldTransfer) {
       station.queue.push(passenger);
       addPassengerAnimation(state, passenger, 'train', 'station', station.id, train.id, now, 'transfer');
       continue;
@@ -126,7 +130,7 @@ function boardPassengers(state, train, station, lineId, now) {
       continue;
     }
 
-    if (passenger.destinationType === station.type || lineCanReachType(state, lineId, passenger.destinationType)) {
+    if (passenger.destinationType === station.type || lineCanHelpPassenger(state, lineId, passenger.destinationType)) {
       train.passengers.push(passenger);
       addPassengerAnimation(state, passenger, 'station', 'train', station.id, train.id, now, 'board');
     } else {
@@ -153,12 +157,52 @@ function prunePassengerAnimations(state, now) {
   ));
 }
 
-function passengerCanUseOtherLine(state, passenger, stationId, currentLineId) {
-  return state.lines.some((line) => (
-    line.id !== currentLineId
-    && line.stationIds.includes(stationId)
-    && lineCanReachType(state, line.id, passenger.destinationType)
+function lineCanHelpPassenger(state, lineId, destinationType) {
+  const line = getLineById(state, lineId);
+  if (!line) {
+    return false;
+  }
+
+  return line.stationIds.some((stationId) => (
+    canReachDestinationFromStation(state, stationId, destinationType)
   ));
+}
+
+function canReachDestinationFromStation(state, stationId, destinationType, excludedFirstLineId = null) {
+  const queue = [stationId];
+  const visitedStations = new Set(queue);
+  const visitedLines = new Set();
+  let isFirstStation = true;
+
+  while (queue.length) {
+    const currentStationId = queue.shift();
+    const currentStation = getStationById(state, currentStationId);
+    if (currentStation?.type === destinationType) {
+      return true;
+    }
+
+    const connectedLines = state.lines.filter((line) => line.stationIds.includes(currentStationId));
+    for (const line of connectedLines) {
+      if (isFirstStation && line.id === excludedFirstLineId) {
+        continue;
+      }
+      if (visitedLines.has(line.id)) {
+        continue;
+      }
+      visitedLines.add(line.id);
+
+      for (const nextStationId of line.stationIds) {
+        if (!visitedStations.has(nextStationId)) {
+          visitedStations.add(nextStationId);
+          queue.push(nextStationId);
+        }
+      }
+    }
+
+    isFirstStation = false;
+  }
+
+  return false;
 }
 
 function lineCanReachType(state, lineId, type) {
