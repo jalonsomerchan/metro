@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from './config.js';
+import { getTerminalControl } from './geometry.js';
 import { getLineById, getLineStations, getStationPoint, isTransferStation } from './state.js';
 
 export function resizeCanvas(canvas, state) {
@@ -80,7 +81,26 @@ function drawLines(context, state) {
     });
 
     context.stroke();
+    drawTerminalCaps(context, state, line, stations);
     context.restore();
+  }
+}
+
+function drawTerminalCaps(context, state, line, stations) {
+  for (const index of [0, stations.length - 1]) {
+    const terminal = getTerminalControl(state, line, stations, index);
+    const half = GAME_CONFIG.terminalCapLength / 2;
+
+    context.beginPath();
+    context.moveTo(
+      terminal.point.x - terminal.normal.x * half,
+      terminal.point.y - terminal.normal.y * half,
+    );
+    context.lineTo(
+      terminal.point.x + terminal.normal.x * half,
+      terminal.point.y + terminal.normal.y * half,
+    );
+    context.stroke();
   }
 }
 
