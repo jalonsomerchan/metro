@@ -1,6 +1,7 @@
 import { GAME_CONFIG, STATION_TYPES } from './config.js';
 import {
   createPassenger,
+  createPassengerAnimation,
   createTrain,
   getLineById,
   getLineStations,
@@ -14,10 +15,16 @@ export function ensureLineTrain(state, line) {
     return;
   }
 
-  const hasTrain = state.trains.some((train) => train.lineId === line.id);
-  if (!hasTrain) {
+  const train = state.trains.find((item) => item.lineId === line.id);
+  if (!train) {
     state.trains.push(createTrain(line.id));
+    return;
   }
+
+  train.segmentIndex = Math.min(train.segmentIndex, Math.max(line.stationIds.length - 2, 0));
+  train.progress = Math.min(Math.max(train.progress, 0), 0.98);
+  if (train.segmentIndex <= 0 && train.direction < 0) train.direction = 1;
+  if (train.segmentIndex >= line.stationIds.length - 1 && train.direction > 0) train.direction = -1;
 }
 
 export function tickSimulation(state, now, deltaMs) {
@@ -26,6 +33,7 @@ export function tickSimulation(state, now, deltaMs) {
   }
 
   maybeSpawnStation(state, now);
+  prunePassengerAnimations(state, now);
   spawnPassengerIfNeeded(state, now);
   for (const train of state.trains) {
     moveTrain(state, train, now, deltaMs);
@@ -59,6 +67,7 @@ function moveTrain(state, train, now, deltaMs) {
     return;
   }
 
+  train.segmentIndex = Math.min(train.segmentIndex, line.stationIds.length - 2);
   train.progress += GAME_CONFIG.trainSpeed * deltaMs;
 
   if (train.progress < 1) {
@@ -81,21 +90,23 @@ function moveTrain(state, train, now, deltaMs) {
   const stationId = line.stationIds[train.segmentIndex];
   const station = getStationById(state, stationId);
   if (station) {
-    stopAtStation(state, train, station, line.id);
+    stopAtStation(state, train, station, line.id, now);
     train.dwellUntil = now + 430;
   }
 }
 
-function stopAtStation(state, train, station, lineId) {
+function stopAtStation(state, train, station, lineId, now) {
   const remainingPassengers = [];
 
   for (const passenger of train.passengers) {
     if (passenger.destinationType === station.type) {
+      addPassengerAnimation(state, passenger, 'train', 'station', station.id, train.id, now, 'alight');
       continue;
     }
 
     if (isTransferStation(state, station.id) && passengerCanUseOtherLine(state, passenger, station.id, lineId)) {
       station.queue.push(passenger);
+      addPassengerAnimation(state, passenger, 'train', 'station', station.id, train.id, now, 'transfer');
       continue;
     }
 
@@ -103,10 +114,10 @@ function stopAtStation(state, train, station, lineId) {
   }
 
   train.passengers = remainingPassengers;
-  boardPassengers(state, train, station, lineId);
+  boardPassengers(state, train, station, lineId, now);
 }
 
-function boardPassengers(state, train, station, lineId) {
+function boardPassengers(state, train, station, lineId, now) {
   const stillWaiting = [];
 
   for (const passenger of station.queue) {
@@ -117,12 +128,29 @@ function boardPassengers(state, train, station, lineId) {
 
     if (passenger.destinationType === station.type || lineCanReachType(state, lineId, passenger.destinationType)) {
       train.passengers.push(passenger);
+      addPassengerAnimation(state, passenger, 'station', 'train', station.id, train.id, now, 'board');
     } else {
       stillWaiting.push(passenger);
     }
   }
 
   station.queue = stillWaiting;
+}
+
+function addPassengerAnimation(state, passenger, fromKind, toKind, stationId, trainId, now, mode) {
+  state.passengerAnimations.push(createPassengerAnimation(
+    passenger,
+    { kind: fromKind, stationId, trainId },
+    { kind: toKind, stationId, trainId },
+    now,
+    mode,
+  ));
+}
+
+function prunePassengerAnimations(state, now) {
+  state.passengerAnimations = state.passengerAnimations.filter((animation) => (
+    now - animation.startedAt < animation.duration
+  ));
 }
 
 function passengerCanUseOtherLine(state, passenger, stationId, currentLineId) {
