@@ -43,6 +43,7 @@ export function createPassenger(originId, destinationType) {
     id: nextId('passenger'),
     originId,
     destinationType,
+    transferStationId: null,
   };
 }
 

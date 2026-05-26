@@ -14,6 +14,7 @@ Prototipo mobile-first de un juego de gestión de metro inspirado en dinámicas 
 - Arrastra desde un tramo intermedio de una línea hasta una estación para insertar esa estación en el trazado.
 - Arrastra un nodo intermedio para modificar el trazado.
 - Los pasajeros se ven dentro del vagón y se animan al subir, bajar o hacer transbordo.
+- Los vagones tienen asientos limitados: si están llenos, los pasajeros esperan en la estación.
 - En estaciones de inicio o fin de línea, el tren invierte la marcha y continúa por la misma línea.
 - Usa **Borrador** para tocar una línea y eliminarla. Las estaciones nunca se borran con esta herramienta.
 - El contador de la izquierda muestra líneas y vías disponibles. Los límites crecen a medida que aparecen más estaciones.
@@ -29,9 +30,9 @@ Prototipo mobile-first de un juego de gestión de metro inspirado en dinámicas 
 - Las estaciones nuevas intentan respetar una distancia mínima para evitar mapas apelotonados.
 - Los trenes mantienen su `segmentIndex`, `progress` y `direction` cuando una línea se amplía o cambia, evitando reinicios bruscos del vagón.
 - Al llegar a una estación terminal, el tren cambia `direction` y vuelve por el siguiente tramo, sin saltar ni reaparecer en la primera estación.
-- Los pasajeros del tren se renderizan dentro del vagón y se crean animaciones temporales al subir, bajar o transferirse.
+- Los pasajeros del tren se renderizan dentro de asientos visibles y se crean animaciones temporales al subir, bajar o transferirse.
+- Cada pasajero guarda `transferStationId` al subir: si su destino requiere transbordo, se baja obligatoriamente en esa estación para esperar la siguiente línea.
 - La lógica de transbordos busca rutas por toda la red: una línea puede recoger pasajeros si desde alguna de sus estaciones existe camino hasta el tipo de destino, aunque haga falta más de un transbordo.
-- Cuando un pasajero va en una línea que no contiene su tipo de destino, se baja en una estación que conecte con otra ruta útil hacia ese destino.
 - Controles táctiles con `touchstart`, `touchmove` y `touchend`, y soporte adicional de ratón/rueda para escritorio.
 - `preventDefault()` y `touch-action: none` evitan scroll, zoom y gestos del navegador durante la interacción.
 - Cámara con coordenadas de mundo, zoom y pan para permitir movimiento por un mapa virtual sin límites fijos.
@@ -48,12 +49,12 @@ Prototipo mobile-first de un juego de gestión de metro inspirado en dinámicas 
 ```txt
 index.html
 src/
-  config.js       Constantes visuales, recursos, animaciones y de juego.
+  config.js       Constantes visuales, recursos, asientos, animaciones y de juego.
   geometry.js     Hitboxes, terminales en T, distancias y selección táctil.
   input.js        Eventos táctiles, ratón, zoom, creación de líneas, ramales y desplazamiento del mapa.
   main.js         Arranque, bucle de juego, recursos y menú de herramientas.
-  renderer.js     Dibujo del mapa, terminales en T, estaciones, pasajeros, animaciones y trenes.
-  simulation.js   Movimiento de trenes, rutas de transbordo, colas, animaciones y estaciones progresivas.
+  renderer.js     Dibujo del mapa, terminales en T, estaciones, pasajeros, asientos, animaciones y trenes.
+  simulation.js   Movimiento de trenes, rutas de transbordo, asientos, colas, animaciones y estaciones progresivas.
   state.js        Estado, recursos, animaciones, cámara, zoom, entidades y helpers de datos.
 scripts/
   build.mjs       Genera dist/ para GitHub Pages.

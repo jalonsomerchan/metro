@@ -25,6 +25,7 @@ export function ensureLineTrain(state, line) {
   train.progress = Math.min(Math.max(train.progress, 0), 0.98);
   if (train.segmentIndex === 0 && train.direction < 0) train.direction = 1;
   if (train.segmentIndex === lastIndex && train.direction > 0) train.direction = -1;
+  train.passengers = train.passengers.slice(0, GAME_CONFIG.trainCapacity);
 }
 
 export function tickSimulation(state, now, deltaMs) {
@@ -101,14 +102,13 @@ function stopAtStation(state, train, station, lineId, now) {
 
   for (const passenger of train.passengers) {
     if (passenger.destinationType === station.type) {
+      passenger.transferStationId = null;
       addPassengerAnimation(state, passenger, 'train', 'station', station.id, train.id, now, 'alight');
       continue;
     }
 
-    const shouldTransfer = !lineCanReachType(state, lineId, passenger.destinationType)
-      && canReachDestinationFromStation(state, station.id, passenger.destinationType, lineId);
-
-    if (shouldTransfer) {
+    if (passenger.transferStationId === station.id) {
+      passenger.transferStationId = null;
       station.queue.push(passenger);
       addPassengerAnimation(state, passenger, 'train', 'station', station.id, train.id, now, 'transfer');
       continue;
@@ -130,7 +130,9 @@ function boardPassengers(state, train, station, lineId, now) {
       continue;
     }
 
-    if (passenger.destinationType === station.type || lineCanHelpPassenger(state, lineId, passenger.destinationType)) {
+    const transferStationId = findTransferStopForLine(state, lineId, passenger.destinationType);
+    if (passenger.destinationType === station.type || transferStationId) {
+      passenger.transferStationId = passenger.destinationType === station.type ? null : transferStationId;
       train.passengers.push(passenger);
       addPassengerAnimation(state, passenger, 'station', 'train', station.id, train.id, now, 'board');
     } else {
@@ -157,15 +159,20 @@ function prunePassengerAnimations(state, now) {
   ));
 }
 
-function lineCanHelpPassenger(state, lineId, destinationType) {
+function findTransferStopForLine(state, lineId, destinationType) {
   const line = getLineById(state, lineId);
   if (!line) {
-    return false;
+    return null;
   }
 
-  return line.stationIds.some((stationId) => (
-    canReachDestinationFromStation(state, stationId, destinationType)
-  ));
+  const directStation = line.stationIds.find((stationId) => getStationById(state, stationId)?.type === destinationType);
+  if (directStation) {
+    return directStation;
+  }
+
+  return line.stationIds.find((stationId) => (
+    canReachDestinationFromStation(state, stationId, destinationType, lineId)
+  )) || null;
 }
 
 function canReachDestinationFromStation(state, stationId, destinationType, excludedFirstLineId = null) {
@@ -203,13 +210,4 @@ function canReachDestinationFromStation(state, stationId, destinationType, exclu
   }
 
   return false;
-}
-
-function lineCanReachType(state, lineId, type) {
-  const line = getLineById(state, lineId);
-  if (!line) {
-    return false;
-  }
-
-  return getLineStations(state, line).some((lineStation) => lineStation.type === type);
 }
