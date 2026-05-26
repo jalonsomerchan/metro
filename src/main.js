@@ -1,11 +1,13 @@
 import { bindTouchControls } from './input.js';
 import { render, resizeCanvas } from './renderer.js';
 import { tickSimulation } from './simulation.js';
-import { createInitialState, setTool } from './state.js';
+import { createInitialState, getResourceStatus, setTool } from './state.js';
 
 const canvas = document.querySelector('#gameCanvas');
 const statusPill = document.querySelector('#statusPill');
 const hintCard = document.querySelector('#hintCard');
+const lineCounter = document.querySelector('#lineCounter');
+const trackCounter = document.querySelector('#trackCounter');
 const menuToggle = document.querySelector('#menuToggle');
 const toolsMenu = document.querySelector('#toolsMenu');
 const toolButtons = [...document.querySelectorAll('.tool-button')];
@@ -28,6 +30,7 @@ function loop(now) {
   const deltaMs = Math.min(now - lastFrameAt, 64);
   lastFrameAt = now;
   tickSimulation(state, now, deltaMs);
+  updateResourceCounters();
   render(canvas, state);
   requestAnimationFrame(loop);
 }
@@ -72,6 +75,12 @@ function updateToolbar(tool) {
   });
 }
 
+function updateResourceCounters() {
+  const resources = getResourceStatus(state);
+  lineCounter.textContent = `${resources.lineRemaining}/${resources.lineLimit}`;
+  trackCounter.textContent = `${resources.trackRemaining}/${resources.trackLimit}`;
+}
+
 function setStatus(text = labelForTool(state.tool)) {
   statusPill.textContent = text;
   hintCard.textContent = helperForState(text);
@@ -87,18 +96,22 @@ function labelForTool(tool) {
 }
 
 function helperForState(status) {
-  if (status === 'Borrador') return 'Toca una estación o línea para eliminarla.';
+  if (status === 'Borrador') return 'Toca una línea para eliminarla. Las estaciones no se borran.';
   if (status === 'Pausado') return 'La simulación está detenida. Toca otra herramienta para continuar.';
   if (status === 'Zoom') return 'Haz pinza con dos dedos o usa la rueda para acercar y alejar.';
   if (status === 'Toca estación destino') return 'Ahora toca otra estación para crear la línea.';
   if (status === 'Arrastra o toca destino') return 'Arrastra hasta otra estación o suelta y toca una segunda estación.';
   if (status === 'Arrastra a estación') return 'Suelta sobre una estación para insertar un nuevo ramal en esa línea.';
+  if (status === 'Amplía desde la T') return 'Suelta la T sobre una estación para ampliar la línea.';
   if (status === 'Ramal añadido') return 'Ramal añadido desde el tramo de línea seleccionado.';
-  if (status === 'Línea creada') return 'Línea creada. Puedes crear otra desde cualquier estación.';
-  if (status === 'Línea seleccionada') return 'Arrastra desde un extremo para ampliarla o desde el medio hacia una estación.';
-  if (status === 'Editando trazado') return 'Arrastra el punto de control. Los extremos amplían la línea.';
+  if (status === 'Línea creada') return 'Línea creada. Puedes crear otra si quedan líneas y vías.';
+  if (status === 'Línea ampliada') return 'Línea ampliada desde el terminal en T.';
+  if (status === 'Sin recursos') return 'No quedan líneas nuevas. Espera a que aparezcan más estaciones.';
+  if (status === 'Sin vías') return 'No quedan vías disponibles. Espera a que aparezcan más estaciones.';
+  if (status === 'Línea seleccionada') return 'Arrastra desde la T para ampliarla o desde el medio hacia una estación.';
+  if (status === 'Editando trazado') return 'Arrastra el punto de control intermedio para ajustar el trazado.';
   if (status === 'Moviendo mapa') return 'Arrastra sobre el fondo para recorrer el mapa infinito.';
-  if (status === 'Mapa infinito') return 'Toca estaciones para crear líneas. Arrastra desde el medio de una línea para ramificar.';
+  if (status === 'Mapa infinito') return 'Toca estaciones para crear líneas. Amplía arrastrando desde una T.';
   return 'Toca dos estaciones para crear líneas. Arrastra el fondo para moverte por el mapa.';
 }
 
