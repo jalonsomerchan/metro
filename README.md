@@ -14,6 +14,7 @@ Prototipo mobile-first de un juego de gestión de metro inspirado en dinámicas 
 - Arrastra desde un tramo intermedio de una línea hasta una estación para insertar esa estación en el trazado.
 - Arrastra un nodo intermedio para modificar el trazado.
 - Los pasajeros se ven dentro del vagón y se animan al subir, bajar o hacer transbordo.
+- En estaciones de inicio o fin de línea, el tren invierte la marcha y continúa por la misma línea.
 - Usa **Borrador** para tocar una línea y eliminarla. Las estaciones nunca se borran con esta herramienta.
 - El contador de la izquierda muestra líneas y vías disponibles. Los límites crecen a medida que aparecen más estaciones.
 - Usa **Pausa** para detener la simulación.
@@ -27,7 +28,10 @@ Prototipo mobile-first de un juego de gestión de metro inspirado en dinámicas 
 - Hay límite de líneas nuevas y vías disponibles, con contador visible y ampliación automática según el número de estaciones.
 - Las estaciones nuevas intentan respetar una distancia mínima para evitar mapas apelotonados.
 - Los trenes mantienen su `segmentIndex`, `progress` y `direction` cuando una línea se amplía o cambia, evitando reinicios bruscos del vagón.
+- Al llegar a una estación terminal, el tren cambia `direction` y vuelve por el siguiente tramo, sin saltar ni reaparecer en la primera estación.
 - Los pasajeros del tren se renderizan dentro del vagón y se crean animaciones temporales al subir, bajar o transferirse.
+- La lógica de transbordos busca rutas por toda la red: una línea puede recoger pasajeros si desde alguna de sus estaciones existe camino hasta el tipo de destino, aunque haga falta más de un transbordo.
+- Cuando un pasajero va en una línea que no contiene su tipo de destino, se baja en una estación que conecte con otra ruta útil hacia ese destino.
 - Controles táctiles con `touchstart`, `touchmove` y `touchend`, y soporte adicional de ratón/rueda para escritorio.
 - `preventDefault()` y `touch-action: none` evitan scroll, zoom y gestos del navegador durante la interacción.
 - Cámara con coordenadas de mundo, zoom y pan para permitir movimiento por un mapa virtual sin límites fijos.
@@ -38,7 +42,6 @@ Prototipo mobile-first de un juego de gestión de metro inspirado en dinámicas 
 - Las estaciones nuevas se generan de forma progresiva durante la simulación.
 - Cada estación mantiene una `queue` de pasajeros.
 - En cada parada, el tren baja pasajeros si su forma coincide con la estación.
-- Si una estación es transbordo y otra línea puede llevar al pasajero a su tipo de destino, el pasajero baja a la cola de la estación para esperar.
 
 ## Estructura
 
@@ -50,7 +53,7 @@ src/
   input.js        Eventos táctiles, ratón, zoom, creación de líneas, ramales y desplazamiento del mapa.
   main.js         Arranque, bucle de juego, recursos y menú de herramientas.
   renderer.js     Dibujo del mapa, terminales en T, estaciones, pasajeros, animaciones y trenes.
-  simulation.js   Movimiento de trenes, colas, animaciones, estaciones progresivas y transbordos.
+  simulation.js   Movimiento de trenes, rutas de transbordo, colas, animaciones y estaciones progresivas.
   state.js        Estado, recursos, animaciones, cámara, zoom, entidades y helpers de datos.
 scripts/
   build.mjs       Genera dist/ para GitHub Pages.
